@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">AppMonitor</string>
+    <string name="accessibility_alert">\"접근성\" 설정에서 %1$s를 \"사용\"으로 변경해주세요.\n %2$s 버튼을 누르면 설정화면으로 이동합니다 </string>
+    <string name="confirm">확인</string>
+    <string name="warning">주의</string>
+    <string name="title_activity_main2">Main2Activity</string>
 </resources>
