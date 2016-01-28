@@ -49,7 +49,7 @@ public class WindowChangeDetectingService extends AccessibilityService {
                 try {
                     ApplicationInfo ai = pm.getApplicationInfo((String) event.getPackageName(), 0);
                     Appinfo = (String)pm.getApplicationLabel(ai);
-                    Intent intent = new Intent(".startMonitoring");
+                    Intent intent = new Intent("startMonitoring");
                     intent.setPackage("com.emotion.trans.appmonitor");
                     intent.putExtra("AppName", Appinfo);
                     startService(intent);
