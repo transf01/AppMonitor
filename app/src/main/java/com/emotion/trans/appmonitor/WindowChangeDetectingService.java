@@ -3,7 +3,9 @@ package com.emotion.trans.appmonitor;
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.content.ComponentName;
+import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.util.Log;
@@ -36,14 +38,27 @@ public class WindowChangeDetectingService extends AccessibilityService {
     public void onAccessibilityEvent(AccessibilityEvent event) {
         Log.d("trans", "-----------------------------------");
         if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            String Appinfo;
             if (event.getPackageName() == null)
             {
-                Log.d("trans", "package name is null");
+                Appinfo = "package name is null";
             }
             else
             {
-                Log.d("trans", event.getPackageName().toString());
+                PackageManager pm = getApplicationContext().getPackageManager();
+                try {
+                    ApplicationInfo ai = pm.getApplicationInfo((String) event.getPackageName(), 0);
+                    Appinfo = (String)pm.getApplicationLabel(ai);
+                    Intent intent = new Intent(".startMonitoring");
+                    intent.setPackage("com.emotion.trans.appmonitor");
+                    intent.putExtra("AppName", Appinfo);
+                    startService(intent);
+                }catch (PackageManager.NameNotFoundException e){
+                    Appinfo = "App name is null";
+                }
             }
+
+            Log.d("trans", Appinfo);
 
 //            ComponentName componentName = new ComponentName(
 //                    event.getPackageName().toString(),
