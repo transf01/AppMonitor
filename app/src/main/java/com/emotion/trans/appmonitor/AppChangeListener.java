@@ -7,7 +7,7 @@ import java.util.Date;
  */
 public interface AppChangeListener {
 
-    public void handleChangedAppName(String appName);
+    public void handleChangedAppInfo(AppInfo appInfo);
     public void handleChangedAppStartTime(Date startTime);
     public void handleAppStop(Date endTime);
 }

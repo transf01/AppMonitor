@@ -38,27 +38,28 @@ public class WindowChangeDetectingService extends AccessibilityService {
     public void onAccessibilityEvent(AccessibilityEvent event) {
         Log.d("trans", "-----------------------------------");
         if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            String Appinfo;
+            String logString;
             if (event.getPackageName() == null)
             {
-                Appinfo = "package name is null";
+                logString = "package name is null";
             }
             else
             {
                 PackageManager pm = getApplicationContext().getPackageManager();
                 try {
                     ApplicationInfo ai = pm.getApplicationInfo((String) event.getPackageName(), 0);
-                    Appinfo = (String)pm.getApplicationLabel(ai) + "(" + event.getPackageName()+")";
                     Intent intent = new Intent("startMonitoring");
                     intent.setPackage("com.emotion.trans.appmonitor");
-                    intent.putExtra("AppName", Appinfo);
+                    intent.putExtra("AppName", pm.getApplicationLabel(ai));
+                    intent.putExtra("PackageName", event.getPackageName());
                     startService(intent);
+                    logString = (String)pm.getApplicationLabel(ai) + "(" + event.getPackageName()+")";
                 }catch (PackageManager.NameNotFoundException e){
-                    Appinfo = "App name is null";
+                    logString = "App name is null";
                 }
             }
 
-            Log.d("trans", Appinfo);
+            Log.d("trans", logString);
 
 //            ComponentName componentName = new ComponentName(
 //                    event.getPackageName().toString(),
