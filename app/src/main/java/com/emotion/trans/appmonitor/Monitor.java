@@ -2,6 +2,7 @@ package com.emotion.trans.appmonitor;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ResolveInfo;
 import android.os.Handler;
 import android.util.Log;
 
@@ -17,7 +18,7 @@ public class Monitor implements AppChangeListener{
     private Handler mHandler;
     private Runnable mRunnable ;
     private HashMap<String, CommandHandler> mCommandHandlerMap = new HashMap<>();
-    private String mCurrentAppName;
+    private AppInfo mCurrentAppInfo;
     private Date mAppStartTime;
     private MonitorInfo mInfo = null;
 
@@ -45,13 +46,15 @@ public class Monitor implements AppChangeListener{
     }
 
     private void startMonitoring(){
-        mInfo = new MonitorInfo(mCurrentAppName, mAppStartTime);
-        Log.d("trans", "### start : " + mInfo.toString());
+        if (!mCurrentAppInfo.isHomeApp(mContext)) {
+            mInfo = new MonitorInfo(mCurrentAppInfo, mAppStartTime);
+            Log.d("trans", "### start : " + mInfo.toString());
+        }
     }
 
     @Override
-    public void handleChangedAppName(String appName) {
-        mCurrentAppName = appName;
+    public void handleChangedAppInfo(AppInfo appInfo) {
+        mCurrentAppInfo = appInfo;
     }
 
     @Override

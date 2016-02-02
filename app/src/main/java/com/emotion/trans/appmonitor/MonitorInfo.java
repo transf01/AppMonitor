@@ -1,5 +1,8 @@
 package com.emotion.trans.appmonitor;
 
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.ResolveInfo;
 import android.util.Log;
 
 import java.util.Date;
@@ -9,11 +12,11 @@ import java.util.Date;
  */
 public class MonitorInfo {
 
-    private String mAppName;
+    private AppInfo mAppInfo;
     private Date mStartTime;
 
-    public MonitorInfo(String appName, Date startTime) {
-        mAppName = appName;
+    public MonitorInfo(AppInfo appInfo, Date startTime) {
+        mAppInfo = appInfo;
         mStartTime = startTime;
     }
 
@@ -23,6 +26,6 @@ public class MonitorInfo {
 
     @Override
     public String toString() {
-        return "[MonitorInfo] App:" + mAppName+"StartTime:"+mStartTime.toString();
+        return "[MonitorInfo] App:" + mAppInfo.toString()+"StartTime:"+mStartTime.toString();
     }
 }

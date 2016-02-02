@@ -12,15 +12,17 @@ import android.util.Log;
 public class WindowChangeCommandHandler implements CommandHandler{
 
     AppChangeListener mListener;
-    String previousAppName = null;
+    AppInfo mPreviousAppInfo = null;
 
     public void handle(Intent intent, Handler handler, Runnable runnable) {
-        String AppName = intent.getStringExtra("AppName");
-        if (AppName != null && !AppName.equals(previousAppName)) {
+
+        AppInfo appInfo = new AppInfo(intent.getStringExtra("AppName"), intent.getStringExtra("PackageName"));
+
+        if (appInfo.isDifferent(mPreviousAppInfo)) {
             handler.removeCallbacks(runnable);
             handler.postDelayed(runnable, MONITORING_JUDGE_TIME);
-            notifyAppChangeInfo(AppName);
-            previousAppName = AppName;
+            notifyAppChangeInfo(appInfo);
+            mPreviousAppInfo = appInfo;
         }
     }
 
@@ -29,12 +31,12 @@ public class WindowChangeCommandHandler implements CommandHandler{
         mListener = listener;
     }
 
-    private void notifyAppChangeInfo(String AppName) {
+    private void notifyAppChangeInfo(AppInfo appInfo) {
         if (mListener == null)
             return;
 
         mListener.handleAppStop(Calendar.getInstance().getTime());
         mListener.handleChangedAppStartTime(Calendar.getInstance().getTime());
-        mListener.handleChangedAppName(AppName);
+        mListener.handleChangedAppInfo(appInfo);
     }
 }
