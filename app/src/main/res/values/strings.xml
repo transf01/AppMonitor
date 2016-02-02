@@ -8,4 +8,7 @@
     <string name="settings">설정</string>
     <string name="information">정보</string>
     <string name="app_information">경북대학교\n지각및신경심리연구실</string>
+    <string name="window_change_action">startMonitoring</string>
+    <string name="screen_on_action">screenOn</string>
+    <string name="screen_off_action">screenOff</string>
 </resources>
