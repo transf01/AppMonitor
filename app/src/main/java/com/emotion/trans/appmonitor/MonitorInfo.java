@@ -21,7 +21,7 @@ public class MonitorInfo {
     }
 
     public void save(Date endTime) {
-        Log.d("trans", toString());
+        Log.d("trans", mAppInfo.toString() + " : " + (endTime.getTime() - mStartTime.getTime())/1000 + "초");
     }
 
     @Override
