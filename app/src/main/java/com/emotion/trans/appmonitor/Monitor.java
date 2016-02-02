@@ -49,12 +49,6 @@ public class Monitor implements AppChangeListener{
         Log.d("trans", "### start : " + mInfo.toString());
     }
 
-
-    private void saveRunningTime(Date startTime, Date endTime) {
-        long diff = (endTime.getTime() - startTime.getTime())/1000;
-    }
-
-
     @Override
     public void handleChangedAppName(String appName) {
         mCurrentAppName = appName;
@@ -66,10 +60,9 @@ public class Monitor implements AppChangeListener{
     }
 
     @Override
-    public void handleAppStop() {
-        Log.d("trans", "### AppStop");
+    public void handleAppStop(Date endTime) {
         if (mInfo != null) {
-            mInfo.save();
+            mInfo.save(endTime);
             mInfo = null;
         }
     }

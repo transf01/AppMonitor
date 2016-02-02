@@ -33,7 +33,7 @@ public class WindowChangeCommandHandler implements CommandHandler{
         if (mListener == null)
             return;
 
-        mListener.handleAppStop();
+        mListener.handleAppStop(Calendar.getInstance().getTime());
         mListener.handleChangedAppStartTime(Calendar.getInstance().getTime());
         mListener.handleChangedAppName(AppName);
     }

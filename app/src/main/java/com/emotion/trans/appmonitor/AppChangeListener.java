@@ -9,5 +9,5 @@ public interface AppChangeListener {
 
     public void handleChangedAppName(String appName);
     public void handleChangedAppStartTime(Date startTime);
-    public void handleAppStop();
+    public void handleAppStop(Date endTime);
 }

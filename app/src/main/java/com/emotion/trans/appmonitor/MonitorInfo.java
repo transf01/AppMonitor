@@ -17,7 +17,7 @@ public class MonitorInfo {
         mStartTime = startTime;
     }
 
-    public void save() {
+    public void save(Date endTime) {
         Log.d("trans", toString());
     }
 
