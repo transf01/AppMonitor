@@ -11,4 +11,5 @@
     <string name="window_change_action">startMonitoring</string>
     <string name="screen_on_action">screenOn</string>
     <string name="screen_off_action">screenOff</string>
+    <string name="debug_print">디버깅 출력</string>
 </resources>

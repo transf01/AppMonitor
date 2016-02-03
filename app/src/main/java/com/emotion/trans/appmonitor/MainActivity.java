@@ -4,9 +4,11 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -42,6 +44,20 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             case R.id.information:
                 activeInformationDialog();
+                return true;
+            case R.id.debug_print:
+                DataBaseHelper dataBaseHelper = new DataBaseHelper(this);
+                dataBaseHelper.open();
+                Cursor cursor = dataBaseHelper.getAllColumns();
+                while (cursor.moveToNext()) {
+                    Log.d("trans", "app:" + cursor.getString(cursor.getColumnIndex("app_name"))
+                            +"start:"+cursor.getString(cursor.getColumnIndex("start_time"))
+                            +"time:" + cursor.getInt(cursor.getColumnIndex("use_time"))
+                            +"isSend:" + cursor.getInt(cursor.getColumnIndex("is_send"))
+                    );
+                }
+                cursor.close();
+                dataBaseHelper.close();
                 return true;
         }
         return false;
