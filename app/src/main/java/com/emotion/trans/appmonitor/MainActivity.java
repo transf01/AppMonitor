@@ -48,19 +48,35 @@ public class MainActivity extends AppCompatActivity {
             case R.id.debug_print:
                 DataBaseHelper dataBaseHelper = new DataBaseHelper(this);
                 dataBaseHelper.open();
-                Cursor cursor = dataBaseHelper.getAllColumns();
-                while (cursor.moveToNext()) {
-                    Log.d("trans", "app:" + cursor.getString(cursor.getColumnIndex("app_name"))
-                            +"start:"+cursor.getString(cursor.getColumnIndex("start_time"))
-                            +"time:" + cursor.getInt(cursor.getColumnIndex("use_time"))
-                            +"isSend:" + cursor.getInt(cursor.getColumnIndex("is_send"))
-                    );
-                }
-                cursor.close();
+                //debugAllPrint(dataBaseHelper);
+                debugDatesPrint(dataBaseHelper);
                 dataBaseHelper.close();
                 return true;
         }
         return false;
+    }
+
+    private void debugDatesPrint(DataBaseHelper db) {
+        Cursor cursor = db.getDates();
+        while (cursor.moveToNext()) {
+            Log.d("trans", "date : " + cursor.getString(cursor.getColumnIndex("start_date")));
+        }
+        cursor.close();
+    }
+
+    private void debugAllPrint(DataBaseHelper db) {
+        Cursor cursor = db.getAllColumns();
+        while (cursor.moveToNext()) {
+            Log.d("trans", "id:" + cursor.getString(cursor.getColumnIndex("_id"))
+                            +" app:" + cursor.getString(cursor.getColumnIndex("app_name"))
+                            +" package:" + cursor.getString(cursor.getColumnIndex("package_name"))
+                            +" start_date:"+cursor.getString(cursor.getColumnIndex("start_date"))
+                            +" start_time:"+cursor.getString(cursor.getColumnIndex("start_time"))
+                            +" time:" + cursor.getInt(cursor.getColumnIndex("use_time"))
+                            +" isSend:" + cursor.getInt(cursor.getColumnIndex("is_send"))
+            );
+        }
+        cursor.close();
     }
 
     private void moveAccessibilitySetting(){
