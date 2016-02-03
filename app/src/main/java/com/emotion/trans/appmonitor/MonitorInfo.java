@@ -33,7 +33,7 @@ public class MonitorInfo {
     public void save(Date endTime) {
         DataBaseHelper dbHelper = new DataBaseHelper(mContext);
         dbHelper.open();
-        dbHelper.addData(mAppInfo.toString(), mStartTime, getUseTime(endTime));
+        dbHelper.addData(mAppInfo.getAppName(), mAppInfo.getPackageName(), mStartTime, getUseTime(endTime));
         dbHelper.close();
     }
 

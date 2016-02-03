@@ -21,6 +21,10 @@ public class AppInfo {
         return mAppName+ "(" + mPackageName+")";
     }
 
+    public String getAppName() {
+        return mAppName;
+    }
+
     public String getPackageName() {
         return mPackageName;
     }
