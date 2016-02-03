@@ -47,7 +47,7 @@ public class Monitor implements AppChangeListener{
 
     private void startMonitoring(){
         if (!mCurrentAppInfo.isHomeApp(mContext)) {
-            mInfo = new MonitorInfo(mCurrentAppInfo, mAppStartTime);
+            mInfo = new MonitorInfo(mContext, mCurrentAppInfo, mAppStartTime);
             Log.d("trans", "### start : " + mInfo.toString());
         }
     }
@@ -71,6 +71,8 @@ public class Monitor implements AppChangeListener{
     }
 
     public void handleCommand(Intent intent) {
+        if (intent == null)
+            return;
         String action = intent.getAction();
         CommandHandler handler = mCommandHandlerMap.get(action);
         handler.handle(intent, mHandler, mRunnable);

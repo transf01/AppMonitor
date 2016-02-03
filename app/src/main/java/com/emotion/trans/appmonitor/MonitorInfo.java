@@ -14,14 +14,27 @@ public class MonitorInfo {
 
     private AppInfo mAppInfo;
     private Date mStartTime;
+    private Context mContext;
 
-    public MonitorInfo(AppInfo appInfo, Date startTime) {
+    public MonitorInfo(Context context, AppInfo appInfo, Date startTime) {
+        mContext = context;
         mAppInfo = appInfo;
         mStartTime = startTime;
     }
 
+    public AppInfo getAppInfo() {
+        return mAppInfo;
+    }
+
+    private long getUseTime(Date endTime) {
+        return (endTime.getTime() - mStartTime.getTime())/1000;
+    }
+
     public void save(Date endTime) {
-        Log.d("trans", mAppInfo.toString() + " : " + (endTime.getTime() - mStartTime.getTime())/1000 + "초");
+        DataBaseHelper dbHelper = new DataBaseHelper(mContext);
+        dbHelper.open();
+        dbHelper.addData(mAppInfo.toString(), mStartTime, getUseTime(endTime));
+        dbHelper.close();
     }
 
     @Override
