@@ -13,11 +13,14 @@ import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.widget.ExpandableListView;
+import android.widget.ListView;
 import android.widget.TextView;
 
 public class MainActivity extends AppCompatActivity {
 
     private final String KEY_ACCESSIBILITY_WARNING = "accessibility_warning";
+    private DataBaseHelper mDB;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,7 +29,18 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        mDB = new DataBaseHelper(this);
+        mDB.open();
+        StatCursorTreeAdapter adapter = new StatCursorTreeAdapter(mDB.getDates(), this, mDB);
+        ExpandableListView list = (ExpandableListView)findViewById(R.id.stat_list);
+        list.setAdapter(adapter);
         activeAccessibilityConfirmDialog();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mDB.close();
     }
 
     @Override
@@ -46,14 +60,18 @@ public class MainActivity extends AppCompatActivity {
                 activeInformationDialog();
                 return true;
             case R.id.debug_print:
-                DataBaseHelper dataBaseHelper = new DataBaseHelper(this);
-                dataBaseHelper.open();
-                //debugAllPrint(dataBaseHelper);
-                debugDatesPrint(dataBaseHelper);
-                dataBaseHelper.close();
+                debugAllPrint(mDB);
                 return true;
         }
         return false;
+    }
+
+    private void debugAppListPrint(DataBaseHelper db) {
+        Cursor cursor = db.getAppsByDate("20160204");
+        while (cursor.moveToNext()) {
+            Log.d("trans", "app : " + cursor.getString(1) + " sum : " + cursor.getInt(2));
+        }
+        cursor.close();
     }
 
     private void debugDatesPrint(DataBaseHelper db) {

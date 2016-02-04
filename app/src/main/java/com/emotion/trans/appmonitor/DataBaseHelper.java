@@ -18,7 +18,7 @@ public class DataBaseHelper{
     private final String TABLE_NAME = "app_stat";
     private final String APP_NAME = "app_name";
     private final String PACKAGE_NAME = "package_name";
-    private final String START_DATE = "start_date";
+    public static final String START_DATE = "start_date";
     private final String START_TIME = "start_time";
     private final String USE_TIME = "use_time";
     private final String IS_SEND = "is_send";
@@ -59,7 +59,13 @@ public class DataBaseHelper{
     }
 
     public Cursor getDates() {
-        String query = String.format("select %1$s from %2$s group by %1$s", START_DATE, TABLE_NAME);
+        String query = String.format("select rowid, %1$s from %2$s group by %1$s", START_DATE, TABLE_NAME);
+        return mdb.rawQuery(query, new String[]{});
+    }
+
+    public Cursor getAppsByDate(String date) {
+        String query = String.format("select rowid, %1$s, sum(%2$s) from %3$s where %4$s=\"%5$s\" group by %1$s order by 3 desc",
+                APP_NAME, USE_TIME, TABLE_NAME, START_DATE, date);
         return mdb.rawQuery(query, new String[]{});
     }
 
