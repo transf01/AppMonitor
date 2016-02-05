@@ -47,21 +47,27 @@ public class StatCursorTreeAdapter extends CursorTreeAdapter{
         return mLayoutInflater.inflate(android.R.layout.simple_expandable_list_item_2, null, false);
     }
 
+    private void addTimeString(StringBuffer buffer, long data, String unit) {
+        if (data > 0) {
+            buffer.append(data);
+            buffer.append(unit);
+            buffer.append(" ");
+        }
+    }
+
     @Override
     protected void bindChildView(View view, Context context, Cursor cursor, boolean isLastChild) {
         TextView textView1 = (TextView)view.findViewById(android.R.id.text1);
         textView1.setText(cursor.getString(1));
         TextView textView2 = (TextView)view.findViewById(android.R.id.text2);
         long sum = cursor.getLong(2);
-        String time;
-        if (sum > 3600) {
-            time = String.format("%1$d시간 %2$d분 %3$d초", sum / 3600, (sum%3600)/60, sum % 60);
-        }else if (sum > 60) {
-            time = String.format("%1$d분 %2$d초", sum / 60, sum % 60);
-        } else {
-            time = String.format("%1$d초", sum);
-        }
-        textView2.setText(time);
+
+        StringBuffer buffer = new StringBuffer();
+        addTimeString(buffer, sum/3600, "시간");
+        addTimeString(buffer, (sum%3600)/60, "분");
+        addTimeString(buffer, sum % 60, "초");
+
+        textView2.setText(buffer.toString());
 
 
     }
