@@ -53,7 +53,7 @@ public class WindowChangeDetectingService extends AccessibilityService {
                     intent.putExtra("AppName", pm.getApplicationLabel(ai));
                     intent.putExtra("PackageName", event.getPackageName());
                     startService(intent);
-                    logString = (String)pm.getApplicationLabel(ai) + "(" + event.getPackageName()+")";
+                    logString = (String)pm.getApplicationLabel(ai) + "(" + event.getPackageName()+" / "+event.getClassName()+")";
                 }catch (PackageManager.NameNotFoundException e){
                     logString = "App name is null";
                 }

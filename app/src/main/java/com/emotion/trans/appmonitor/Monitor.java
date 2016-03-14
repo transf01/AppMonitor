@@ -6,6 +6,7 @@ import android.content.pm.ResolveInfo;
 import android.os.Handler;
 import android.util.Log;
 
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 
@@ -43,6 +44,7 @@ public class Monitor implements AppChangeListener{
         addCommandHandler("startMonitoring", new WindowChangeCommandHandler());
         addCommandHandler("screenOn", new ScreenOnCommandHandler());
         addCommandHandler("screenOff", new ScreenOffCommandHandler());
+        addCommandHandler(MonitoringService.SEND_DATA, new SendData());
     }
 
     private void startMonitoring(){
@@ -71,15 +73,97 @@ public class Monitor implements AppChangeListener{
     }
 
     public void handleCommand(Intent intent) {
-        if (intent == null)
-            return;
+
+        if (intent == null)   return;
         String action = intent.getAction();
+
         CommandHandler handler = mCommandHandlerMap.get(action);
-        handler.handle(intent, mHandler, mRunnable);
+        if (handler != null) {
+            handler.handle(intent, mHandler, mRunnable);
+        }
     }
 
     public void clearHandler() {
         mHandler.removeCallbacks(mRunnable);
     }
 
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    private class ScreenOffCommandHandler implements CommandHandler{
+        private AppChangeListener mListener;
+
+        @Override
+        public void handle(Intent intent, Handler handler, Runnable runnable) {
+            handler.removeCallbacks(runnable);
+            mListener.handleAppStop(Calendar.getInstance().getTime());
+        }
+
+        @Override
+        public void addChangeListener(AppChangeListener listener) {
+            mListener = listener;
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    private class ScreenOnCommandHandler implements CommandHandler {
+        private AppChangeListener mListener;
+
+        @Override
+        public void handle(Intent intent, Handler handler, Runnable runnable) {
+            handler.removeCallbacks(runnable);
+            handler.postDelayed(runnable, MONITORING_JUDGE_TIME);
+            mListener.handleChangedAppStartTime(Calendar.getInstance().getTime());
+        }
+
+        @Override
+        public void addChangeListener(AppChangeListener listener) {
+            mListener = listener;
+        }
+
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    private class WindowChangeCommandHandler implements CommandHandler{
+
+        AppChangeListener mListener;
+        AppInfo mPreviousAppInfo = null;
+
+        public void handle(Intent intent, Handler handler, Runnable runnable) {
+
+            AppInfo appInfo = new AppInfo(intent.getStringExtra("AppName"), intent.getStringExtra("PackageName"));
+
+            if (appInfo.isDifferent(mPreviousAppInfo)) {
+                handler.removeCallbacks(runnable);
+                handler.postDelayed(runnable, MONITORING_JUDGE_TIME);
+                notifyAppChangeInfo(appInfo);
+                mPreviousAppInfo = appInfo;
+            }
+        }
+
+        @Override
+        public void addChangeListener(AppChangeListener listener) {
+            mListener = listener;
+        }
+
+        private void notifyAppChangeInfo(AppInfo appInfo) {
+            if (mListener == null)
+                return;
+
+            mListener.handleAppStop(Calendar.getInstance().getTime());
+            mListener.handleChangedAppStartTime(Calendar.getInstance().getTime());
+            mListener.handleChangedAppInfo(appInfo);
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    private class SendData implements CommandHandler {
+        @Override
+        public void handle(Intent intent, Handler handler, Runnable runnable) {
+            Log.d("trans", "-----------------send data---------------------!!");
+        }
+
+        @Override
+        public void addChangeListener(AppChangeListener listener) {
+
+        }
+    }
 }

@@ -32,9 +32,15 @@
                 <action android:name="startMonitoring" />
                 <action android:name="screenOn" />
                 <action android:name="screenOff" />
+                <action android:name="SEND_DATA" />
             </intent-filter>
         </service>
 
-     </application>
+        <receiver android:name=".WIFIReceiver">
+            <intent-filter>
+                <action android:name="android.net.wifi.STATE_CHANGE" />
+            </intent-filter>
+        </receiver>
+    </application>
 
 </manifest>

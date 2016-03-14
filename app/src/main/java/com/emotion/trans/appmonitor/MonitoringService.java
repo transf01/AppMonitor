@@ -19,6 +19,7 @@ import java.util.TimeZone;
 public class MonitoringService extends Service {
     ScreenReceiver mScreenReceiver = new ScreenReceiver();
     Monitor mMonitor = null;
+    public static final String SEND_DATA = "SEND_DATA";
 
     @Override
     public IBinder onBind(Intent intent) {

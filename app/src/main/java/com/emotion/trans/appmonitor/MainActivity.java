@@ -1,6 +1,7 @@
 package com.emotion.trans.appmonitor;
 
 import android.app.AlertDialog;
+import android.content.ComponentName;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -58,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             case R.id.information:
                 activeInformationDialog();
-                return true;
+                 return true;
             case R.id.debug_print:
                 debugAllPrint(mDB);
                 return true;
