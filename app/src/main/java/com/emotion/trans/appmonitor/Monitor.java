@@ -3,9 +3,20 @@ package com.emotion.trans.appmonitor;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ResolveInfo;
+import android.database.Cursor;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Handler;
 import android.util.Log;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -22,8 +33,10 @@ public class Monitor implements AppChangeListener{
     private AppInfo mCurrentAppInfo;
     private Date mAppStartTime;
     private MonitorInfo mInfo = null;
+    private DataBaseHelper mdb;
+    private String mUUID;
 
-    public Monitor(Context context) {
+    public Monitor(Context context, DataBaseHelper db, String uuid) {
         mContext = context;
         mHandler = new Handler();
         mRunnable = new Runnable() {
@@ -32,6 +45,8 @@ public class Monitor implements AppChangeListener{
                 startMonitoring();
             }
         };
+        mdb = db;
+        mUUID = uuid;
         initCommandHandlerMap();
     }
 
@@ -49,7 +64,7 @@ public class Monitor implements AppChangeListener{
 
     private void startMonitoring(){
         if (!mCurrentAppInfo.isHomeApp(mContext)) {
-            mInfo = new MonitorInfo(mContext, mCurrentAppInfo, mAppStartTime);
+            mInfo = new MonitorInfo(mCurrentAppInfo, mAppStartTime, mdb);
             Log.d("trans", "### start : " + mInfo.toString());
         }
     }
@@ -64,11 +79,22 @@ public class Monitor implements AppChangeListener{
         mAppStartTime = startTime;
     }
 
+    private boolean isWiFiConnected() {
+        ConnectivityManager connMgr = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
+        return (networkInfo != null && networkInfo.getType() == ConnectivityManager.TYPE_WIFI && networkInfo.isConnected());
+    }
+
     @Override
     public void handleAppStop(Date endTime) {
         if (mInfo != null) {
             mInfo.save(endTime);
             mInfo = null;
+            if(isWiFiConnected()) {
+                Intent i = new Intent(MonitoringService.SEND_DATA);
+                i.setPackage(mContext.getPackageName());
+                mContext.startService(i);
+            }
         }
     }
 
@@ -156,13 +182,81 @@ public class Monitor implements AppChangeListener{
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
     private class SendData implements CommandHandler {
+
+        private Handler mHandler = new Handler();
+
+        private JSONArray getJSONData() {
+            Cursor cursor = mdb.getSendData();
+            String[] columns = cursor.getColumnNames();
+
+            JSONArray jsonArray = new JSONArray();
+            while (cursor.moveToNext()) {
+                JSONObject object = new JSONObject();
+                try {
+                    object.put("uuid", mUUID);
+                    for (int i = 0; i < columns.length; i++) {
+                        object.put(columns[i], cursor.getString(i));
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                jsonArray.put(object);
+            }
+            cursor.close();
+            return jsonArray;
+        }
+
         @Override
         public void handle(Intent intent, Handler handler, Runnable runnable) {
-            Log.d("trans", "-----------------send data---------------------!!");
+            Log.d("trans", getJSONData().toString());
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    JSONArray data = getJSONData();
+
+                }
+            });
+
         }
 
         @Override
         public void addChangeListener(AppChangeListener listener) {
+
+        }
+    }
+
+    private class PostJSON {
+        private URL mUrl;
+        public PostJSON(URL url) {
+            mUrl = url;
+        }
+
+        public void sendData(JSONArray data) {
+            try{
+                HttpURLConnection conn = (HttpURLConnection)mUrl.openConnection();
+//                conn.setConnectTimeout(CONN_TIMEOUT * 1000);
+//                conn.setReadTimeout(READ_TIMEOUT * 1000);
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Cache-Control", "no-cache");
+                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setRequestProperty("Accept", "application/json");
+                conn.setDoOutput(true);
+                conn.setDoInput(true);
+
+                OutputStream os = conn.getOutputStream();
+                os.write(data.toString().getBytes());
+                os.flush();
+
+                String response;
+
+                int responseCode = conn.getResponseCode();
+
+                if(responseCode == HttpURLConnection.HTTP_OK) {
+
+                }
+            }catch (IOException e) {
+                e.printStackTrace();
+            }
 
         }
     }

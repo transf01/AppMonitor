@@ -62,6 +62,9 @@ public class MainActivity extends AppCompatActivity {
                  return true;
             case R.id.debug_print:
                 debugAllPrint(mDB);
+                Intent i = new Intent(this, MonitoringService.class);
+                i.setAction(MonitoringService.SEND_DATA);
+                startService(i);
                 return true;
         }
         return false;

@@ -14,12 +14,12 @@ public class MonitorInfo {
 
     private AppInfo mAppInfo;
     private Date mStartTime;
-    private Context mContext;
+    private DataBaseHelper mdb;
 
-    public MonitorInfo(Context context, AppInfo appInfo, Date startTime) {
-        mContext = context;
+    public MonitorInfo(AppInfo appInfo, Date startTime, DataBaseHelper db) {
         mAppInfo = appInfo;
         mStartTime = startTime;
+        mdb = db;
     }
 
     public AppInfo getAppInfo() {
@@ -31,10 +31,7 @@ public class MonitorInfo {
     }
 
     public void save(Date endTime) {
-        DataBaseHelper dbHelper = new DataBaseHelper(mContext);
-        dbHelper.open();
-        dbHelper.addData(mAppInfo.getAppName(), mAppInfo.getPackageName(), mStartTime, getUseTime(endTime));
-        dbHelper.close();
+        mdb.addData(mAppInfo.getAppName(), mAppInfo.getPackageName(), mStartTime, getUseTime(endTime));
     }
 
     @Override

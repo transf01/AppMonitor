@@ -69,6 +69,11 @@ public class DataBaseHelper{
         return mdb.rawQuery(query, new String[]{});
     }
 
+    public Cursor getSendData() {
+        String query = String.format("select %1$s,%2$s,%3$s,%4$s,%5$s from %6$s where is_send = 0", APP_NAME, PACKAGE_NAME, START_DATE, START_TIME, USE_TIME, TABLE_NAME);
+        return mdb.rawQuery(query, new String[]{});
+    }
+
     private class DataBaseOpenHelper extends SQLiteOpenHelper{
 
         public DataBaseOpenHelper(Context context, String name, SQLiteDatabase.CursorFactory factory, int version) {

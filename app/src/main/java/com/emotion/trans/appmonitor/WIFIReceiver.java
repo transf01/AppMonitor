@@ -18,6 +18,7 @@ public class WIFIReceiver extends BroadcastReceiver {
         if (intent != null && WifiManager.NETWORK_STATE_CHANGED_ACTION.equals(intent.getAction())) {
             NetworkInfo networkInfo = (NetworkInfo) intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
             if (networkInfo.isConnected() && networkInfo.getType() == ConnectivityManager.TYPE_WIFI) {
+                Log.d("trans", "-------------------------wifi --------------------");
                 Intent i = new Intent(context, MonitoringService.class);
                 i.setAction(MonitoringService.SEND_DATA);
                 context.startService(i);

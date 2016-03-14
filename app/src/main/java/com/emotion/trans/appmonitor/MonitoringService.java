@@ -1,25 +1,22 @@
 package com.emotion.trans.appmonitor;
 
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.os.IBinder;
-import android.util.Log;
-import android.widget.Toast;
-
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TimeZone;
+import android.telephony.TelephonyManager;
+import java.util.UUID;
 
 
 public class MonitoringService extends Service {
     ScreenReceiver mScreenReceiver = new ScreenReceiver();
     Monitor mMonitor = null;
     public static final String SEND_DATA = "SEND_DATA";
+    private DataBaseHelper mdb;
+    private SharedPreferences mPref;
+    private final String UUID = "UUID";
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -34,6 +31,28 @@ public class MonitoringService extends Service {
         registerReceiver(mScreenReceiver, filter);
     }
 
+    private String getUUID() {
+        String uuid = mPref.getString(UUID, "");
+        if ("".equals(uuid)) {
+            uuid = createUUID();
+            SharedPreferences.Editor editor = mPref.edit();
+            editor.putString(UUID, uuid);
+        }
+        return uuid;
+    }
+
+    private String createUUID() {
+        final TelephonyManager tm = (TelephonyManager) getBaseContext().getSystemService(Context.TELEPHONY_SERVICE);
+
+        final String tmDevice, tmSerial, androidId;
+        tmDevice = "" + tm.getDeviceId();
+        tmSerial = "" + tm.getSimSerialNumber();
+        androidId = "" + android.provider.Settings.Secure.getString(getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
+        UUID deviceUuid = new UUID(androidId.hashCode(), ((long)tmDevice.hashCode() << 32) | tmSerial.hashCode());
+        return deviceUuid.toString();
+    }
+
+
     private void unregisterScreenReceiver() {
         unregisterReceiver(mScreenReceiver);
     }
@@ -42,7 +61,10 @@ public class MonitoringService extends Service {
     public void onCreate() {
         super.onCreate();
         registerScreenReceiver();
-        mMonitor = new Monitor(this);
+        mPref = getSharedPreferences("pref", MODE_PRIVATE);
+        mdb = new DataBaseHelper(this);
+        mdb.open();
+        mMonitor = new Monitor(this, mdb, getUUID());
     }
 
     @Override
@@ -56,6 +78,7 @@ public class MonitoringService extends Service {
         super.onDestroy();
         unregisterScreenReceiver();
         mMonitor.clearHandler();
+        mdb.close();
     }
 
 }
