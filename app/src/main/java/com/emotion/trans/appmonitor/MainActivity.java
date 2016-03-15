@@ -18,6 +18,8 @@ import android.widget.ExpandableListView;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import java.util.Date;
+
 public class MainActivity extends AppCompatActivity {
 
     private final String KEY_ACCESSIBILITY_WARNING = "accessibility_warning";
@@ -59,15 +61,25 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             case R.id.information:
                 activeInformationDialog();
+                testAdd(mDB);
                  return true;
             case R.id.debug_print:
+//                clear(mDB);
                 debugAllPrint(mDB);
-                Intent i = new Intent(this, MonitoringService.class);
-                i.setAction(MonitoringService.SEND_DATA);
-                startService(i);
-                return true;
+                 return true;
         }
         return false;
+    }
+
+    private void clear(DataBaseHelper db) {
+        db.clear();
+    }
+
+    private void testAdd(DataBaseHelper db) {
+        long millis = System.currentTimeMillis();
+        for (int i = 0; i < 1000; i++) {
+            db.addData(String.format("test-%1$d", i), "test", new Date(millis+i*1000), i);
+        }
     }
 
     private void debugAppListPrint(DataBaseHelper db) {

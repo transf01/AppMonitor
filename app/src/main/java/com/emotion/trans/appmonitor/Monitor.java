@@ -2,10 +2,10 @@ package com.emotion.trans.appmonitor;
 
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.ResolveInfo;
 import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.AsyncTask;
 import android.os.Handler;
 import android.util.Log;
 
@@ -13,9 +13,13 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Calendar;
 import java.util.Date;
@@ -35,6 +39,7 @@ public class Monitor implements AppChangeListener{
     private MonitorInfo mInfo = null;
     private DataBaseHelper mdb;
     private String mUUID;
+    private final String HISTORY="history";
 
     public Monitor(Context context, DataBaseHelper db, String uuid) {
         mContext = context;
@@ -85,15 +90,22 @@ public class Monitor implements AppChangeListener{
         return (networkInfo != null && networkInfo.getType() == ConnectivityManager.TYPE_WIFI && networkInfo.isConnected());
     }
 
+    private String getURLString() {
+        return MonitoringService.HOST+HISTORY;
+    }
+
     @Override
     public void handleAppStop(Date endTime) {
         if (mInfo != null) {
-            mInfo.save(endTime);
+            long rowid = mInfo.save(endTime);
             mInfo = null;
             if(isWiFiConnected()) {
-                Intent i = new Intent(MonitoringService.SEND_DATA);
-                i.setPackage(mContext.getPackageName());
-                mContext.startService(i);
+                try {
+                    PostAppHistory post = new PostAppHistory(new URL(getURLString()));
+                    post.execute(mdb.getSendDataByRowID(rowid));
+                } catch (MalformedURLException exception) {
+                    exception.printStackTrace();
+                }
             }
         }
     }
@@ -183,40 +195,14 @@ public class Monitor implements AppChangeListener{
     ///////////////////////////////////////////////////////////////////////////////////////////////
     private class SendData implements CommandHandler {
 
-        private Handler mHandler = new Handler();
-
-        private JSONArray getJSONData() {
-            Cursor cursor = mdb.getSendData();
-            String[] columns = cursor.getColumnNames();
-
-            JSONArray jsonArray = new JSONArray();
-            while (cursor.moveToNext()) {
-                JSONObject object = new JSONObject();
-                try {
-                    object.put("uuid", mUUID);
-                    for (int i = 0; i < columns.length; i++) {
-                        object.put(columns[i], cursor.getString(i));
-                    }
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-                jsonArray.put(object);
-            }
-            cursor.close();
-            return jsonArray;
-        }
-
-        @Override
+         @Override
         public void handle(Intent intent, Handler handler, Runnable runnable) {
-            Log.d("trans", getJSONData().toString());
-            mHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    JSONArray data = getJSONData();
-
-                }
-            });
-
+            try {
+                PostAppHistory post = new PostAppHistory(new URL(getURLString()));
+                post.execute(mdb.getSendData());
+            } catch (MalformedURLException exception) {
+                exception.printStackTrace();
+            }
         }
 
         @Override
@@ -225,13 +211,35 @@ public class Monitor implements AppChangeListener{
         }
     }
 
-    private class PostJSON {
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    private class PostAppHistory extends AsyncTask<Cursor, Void, Cursor> {
         private URL mUrl;
-        public PostJSON(URL url) {
+        public PostAppHistory(URL url) {
             mUrl = url;
         }
 
-        public void sendData(JSONArray data) {
+        private byte[] getAppHistoryJSONData(Cursor cursor) {
+            Log.d("trans", "make json items["+cursor.getCount()+"]");
+            JSONArray jsonArray = new JSONArray();
+            while (cursor.moveToNext()) {
+                JSONObject object = new JSONObject();
+                try {
+                    object.put("uuid", mUUID);
+                    object.put(DataBaseHelper.APP_NAME, cursor.getString(cursor.getColumnIndex(DataBaseHelper.APP_NAME)));
+                    object.put(DataBaseHelper.PACKAGE_NAME, cursor.getString(cursor.getColumnIndex(DataBaseHelper.PACKAGE_NAME)));
+                    object.put(DataBaseHelper.START_DATE, cursor.getString(cursor.getColumnIndex(DataBaseHelper.START_DATE)));
+                    object.put(DataBaseHelper.START_TIME, cursor.getString(cursor.getColumnIndex(DataBaseHelper.START_TIME)));
+                    object.put(DataBaseHelper.USE_TIME, cursor.getString(cursor.getColumnIndex(DataBaseHelper.USE_TIME)));
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                jsonArray.put(object);
+            }
+            return jsonArray.toString().getBytes();
+        }
+
+        @Override
+        protected Cursor doInBackground(Cursor... params) {
             try{
                 HttpURLConnection conn = (HttpURLConnection)mUrl.openConnection();
 //                conn.setConnectTimeout(CONN_TIMEOUT * 1000);
@@ -244,20 +252,53 @@ public class Monitor implements AppChangeListener{
                 conn.setDoInput(true);
 
                 OutputStream os = conn.getOutputStream();
-                os.write(data.toString().getBytes());
+                Log.d("trans", "-------------send data");
+                os.write(getAppHistoryJSONData(params[0]));
                 os.flush();
 
-                String response;
 
-                int responseCode = conn.getResponseCode();
+                InputStream in;
+                if(conn.getResponseCode() >= HttpURLConnection.HTTP_BAD_REQUEST)
+                    in = conn.getErrorStream();
+                else
+                    in = conn.getInputStream();
 
-                if(responseCode == HttpURLConnection.HTTP_OK) {
-
+                BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+                StringBuffer response = new StringBuffer();
+                String line;
+                while ((line=reader.readLine()) != null) {
+                    response.append(line);
                 }
+                reader.close();
+                Log.d("trans", "-------server response------");
+                Log.d("trans", response.toString());
+//                Intent i = new Intent(mContext, WebViewActivity.class);
+//                i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_HISTORY);
+//                i.putExtra("DATA", response.toString());
+//                mContext.startActivity(i);
+
+                if (HttpURLConnection.HTTP_CREATED == conn.getResponseCode()) {
+                    return params[0];
+                }
+
             }catch (IOException e) {
                 e.printStackTrace();
             }
 
+            params[0].close();
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Cursor cursor) {
+            super.onPostExecute(cursor);
+            if (cursor != null) {
+                Log.d("trans", "success send app histories : " + cursor.getCount());
+                while (cursor.moveToPrevious()) {
+                    mdb.updateSendFlag(cursor.getString(0));
+                }
+                cursor.close();
+            }
         }
     }
 }

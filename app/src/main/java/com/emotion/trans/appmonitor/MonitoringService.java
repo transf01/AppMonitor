@@ -5,8 +5,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.IBinder;
 import android.telephony.TelephonyManager;
+import android.util.Log;
+
 import java.util.UUID;
 
 
@@ -17,6 +21,8 @@ public class MonitoringService extends Service {
     private DataBaseHelper mdb;
     private SharedPreferences mPref;
     private final String UUID = "UUID";
+    public static final String IS_SEND_USER_INFO = "IS_SEND_USER_INFO";
+    public static final String HOST = "http://192.168.0.63:8000/api/";
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -31,6 +37,20 @@ public class MonitoringService extends Service {
         registerReceiver(mScreenReceiver, filter);
     }
 
+    private boolean isConnected() {
+        ConnectivityManager connMgr = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
+        return (networkInfo != null && networkInfo.isConnected());
+    }
+
+    private void sendUserInfo() {
+        if (!mPref.getBoolean(IS_SEND_USER_INFO, false) && isConnected()) {
+            TelephonyManager tm = (TelephonyManager) getBaseContext().getSystemService(Context.TELEPHONY_SERVICE);
+            UserInfo info = new UserInfo(getUUID(), "test_name", tm.getLine1Number(), mPref);
+            info.send();
+        }
+    }
+
     private String getUUID() {
         String uuid = mPref.getString(UUID, "");
         if ("".equals(uuid)) {
@@ -42,8 +62,7 @@ public class MonitoringService extends Service {
     }
 
     private String createUUID() {
-        final TelephonyManager tm = (TelephonyManager) getBaseContext().getSystemService(Context.TELEPHONY_SERVICE);
-
+        TelephonyManager tm = (TelephonyManager) getBaseContext().getSystemService(Context.TELEPHONY_SERVICE);
         final String tmDevice, tmSerial, androidId;
         tmDevice = "" + tm.getDeviceId();
         tmSerial = "" + tm.getSimSerialNumber();
@@ -65,6 +84,7 @@ public class MonitoringService extends Service {
         mdb = new DataBaseHelper(this);
         mdb.open();
         mMonitor = new Monitor(this, mdb, getUUID());
+        sendUserInfo();
     }
 
     @Override

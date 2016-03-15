@@ -16,15 +16,15 @@ import java.util.Date;
 public class DataBaseHelper{
 
     private final String TABLE_NAME = "app_stat";
-    private final String APP_NAME = "app_name";
-    private final String PACKAGE_NAME = "package_name";
+    public static final String APP_NAME = "app_name";
+    public static final String PACKAGE_NAME = "package_name";
     public static final String START_DATE = "start_date";
-    private final String START_TIME = "start_time";
-    private final String USE_TIME = "use_time";
+    public static final String START_TIME = "start_time";
+    public static final String USE_TIME = "use_time";
     private final String IS_SEND = "is_send";
 
-    private SimpleDateFormat mDateFormat = new SimpleDateFormat("yyyyMMdd");
-    private SimpleDateFormat mTimeFormat = new SimpleDateFormat("HHmmss");
+    private SimpleDateFormat mDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+    private SimpleDateFormat mTimeFormat = new SimpleDateFormat("HH:mm:ss");
 
     private Context mContext;
     private DataBaseOpenHelper mOpenHelper;
@@ -63,6 +63,12 @@ public class DataBaseHelper{
         return mdb.rawQuery(query, new String[]{});
     }
 
+    public void updateSendFlag(String rowid) {
+        ContentValues value = new ContentValues();
+        value.put(IS_SEND, 1);
+        mdb.update(TABLE_NAME, value, "rowid=?", new String[]{rowid});
+    }
+
     public Cursor getAppsByDate(String date) {
         String query = String.format("select rowid, %1$s, sum(%2$s) from %3$s where %4$s=\"%5$s\" group by %1$s order by 3 desc",
                 APP_NAME, USE_TIME, TABLE_NAME, START_DATE, date);
@@ -70,8 +76,17 @@ public class DataBaseHelper{
     }
 
     public Cursor getSendData() {
-        String query = String.format("select %1$s,%2$s,%3$s,%4$s,%5$s from %6$s where is_send = 0", APP_NAME, PACKAGE_NAME, START_DATE, START_TIME, USE_TIME, TABLE_NAME);
+        String query = String.format("select rowid, * from %1$s where is_send = 0", TABLE_NAME);
         return mdb.rawQuery(query, new String[]{});
+    }
+
+    public Cursor getSendDataByRowID(long rowId) {
+        String query = String.format("select rowid, * from %1$s where rowid = %2$d", TABLE_NAME, rowId);
+        return mdb.rawQuery(query, new String[]{});
+    }
+
+    public void clear() {
+        mdb.delete(TABLE_NAME, null, null);
     }
 
     private class DataBaseOpenHelper extends SQLiteOpenHelper{

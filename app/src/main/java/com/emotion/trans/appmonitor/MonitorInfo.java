@@ -30,8 +30,8 @@ public class MonitorInfo {
         return (endTime.getTime() - mStartTime.getTime())/1000;
     }
 
-    public void save(Date endTime) {
-        mdb.addData(mAppInfo.getAppName(), mAppInfo.getPackageName(), mStartTime, getUseTime(endTime));
+    public long save(Date endTime) {
+        return mdb.addData(mAppInfo.getAppName(), mAppInfo.getPackageName(), mStartTime, getUseTime(endTime));
     }
 
     @Override
