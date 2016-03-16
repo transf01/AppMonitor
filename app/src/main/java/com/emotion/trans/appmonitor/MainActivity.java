@@ -1,10 +1,8 @@
 package com.emotion.trans.appmonitor;
 
 import android.app.AlertDialog;
-import android.content.ComponentName;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -15,15 +13,14 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.ExpandableListView;
-import android.widget.ListView;
 import android.widget.TextView;
 
 import java.util.Date;
 
 public class MainActivity extends AppCompatActivity {
 
-    private final String KEY_ACCESSIBILITY_WARNING = "accessibility_warning";
     private DataBaseHelper mDB;
+    private Config mConfig;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,13 +28,30 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
         mDB = new DataBaseHelper(this);
         mDB.open();
+        mConfig = new Config(this);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
         StatCursorTreeAdapter adapter = new StatCursorTreeAdapter(mDB.getDates(), this, mDB);
         ExpandableListView list = (ExpandableListView)findViewById(R.id.stat_list);
         list.setAdapter(adapter);
-        activeAccessibilityConfirmDialog();
+        if (isNeedUserInfo()) {
+            Intent i = new Intent(this, UserInfoActivity.class);
+            i.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+            startActivityForResult(i, Config.REQUEST_CODE);
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK && requestCode == Config.REQUEST_CODE) {
+            activeAccessibilityConfirmDialog();
+        }
     }
 
     @Override
@@ -69,6 +83,10 @@ public class MainActivity extends AppCompatActivity {
                  return true;
         }
         return false;
+    }
+
+    private boolean isNeedUserInfo() {
+        return mConfig.getUserName().isEmpty() || mConfig.getPhoneNumber().isEmpty();
     }
 
     private void clear(DataBaseHelper db) {
@@ -120,10 +138,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void activeAccessibilityConfirmDialog() {
-        SharedPreferences pref = getSharedPreferences("Pref", MODE_PRIVATE);
-        boolean isWarnAccessibility = pref.getBoolean(KEY_ACCESSIBILITY_WARNING, false);
-
-        if (isWarnAccessibility)
+        if (mConfig.isPassAccessbilityWarning())
             return;
 
         AlertDialog.Builder alertBuilder = new AlertDialog.Builder(this);
@@ -135,15 +150,13 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         moveAccessibilitySetting();
+                        mConfig.passAccessbilityWarning();
                     }
                 });
 
         AlertDialog alert = alertBuilder.create();
         alert.setTitle(R.string.warning);
         alert.show();
-        SharedPreferences.Editor editor = pref.edit();
-        editor.putBoolean(KEY_ACCESSIBILITY_WARNING, true);
-        editor.commit();
     }
 
     private void activeInformationDialog() {

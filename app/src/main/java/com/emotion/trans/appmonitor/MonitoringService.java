@@ -15,16 +15,14 @@ import java.util.UUID;
 
 
 public class MonitoringService extends Service {
-    ScreenReceiver mScreenReceiver = new ScreenReceiver();
-    Monitor mMonitor = null;
     public static final String SEND_DATA = "SEND_DATA";
-    private DataBaseHelper mdb;
-    private SharedPreferences mPref;
-    private final String UUID = "UUID";
-    public static final String IS_SEND_USER_INFO = "IS_SEND_USER_INFO";
-    public static final String HOST = "http://192.168.0.63:8000/api/";
 
-    @Override
+    private ScreenReceiver mScreenReceiver = new ScreenReceiver();
+    private Monitor mMonitor = null;
+    private DataBaseHelper mdb;
+    private Config mConfig;
+
+      @Override
     public IBinder onBind(Intent intent) {
         // TODO: Return the communication channel to the service.
         throw new UnsupportedOperationException("Not yet implemented");
@@ -37,41 +35,6 @@ public class MonitoringService extends Service {
         registerReceiver(mScreenReceiver, filter);
     }
 
-    private boolean isConnected() {
-        ConnectivityManager connMgr = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
-        return (networkInfo != null && networkInfo.isConnected());
-    }
-
-    private void sendUserInfo() {
-        if (!mPref.getBoolean(IS_SEND_USER_INFO, false) && isConnected()) {
-            TelephonyManager tm = (TelephonyManager) getBaseContext().getSystemService(Context.TELEPHONY_SERVICE);
-            UserInfo info = new UserInfo(getUUID(), "test_name", tm.getLine1Number(), mPref);
-            info.send();
-        }
-    }
-
-    private String getUUID() {
-        String uuid = mPref.getString(UUID, "");
-        if ("".equals(uuid)) {
-            uuid = createUUID();
-            SharedPreferences.Editor editor = mPref.edit();
-            editor.putString(UUID, uuid);
-        }
-        return uuid;
-    }
-
-    private String createUUID() {
-        TelephonyManager tm = (TelephonyManager) getBaseContext().getSystemService(Context.TELEPHONY_SERVICE);
-        final String tmDevice, tmSerial, androidId;
-        tmDevice = "" + tm.getDeviceId();
-        tmSerial = "" + tm.getSimSerialNumber();
-        androidId = "" + android.provider.Settings.Secure.getString(getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
-        UUID deviceUuid = new UUID(androidId.hashCode(), ((long)tmDevice.hashCode() << 32) | tmSerial.hashCode());
-        return deviceUuid.toString();
-    }
-
-
     private void unregisterScreenReceiver() {
         unregisterReceiver(mScreenReceiver);
     }
@@ -80,11 +43,17 @@ public class MonitoringService extends Service {
     public void onCreate() {
         super.onCreate();
         registerScreenReceiver();
-        mPref = getSharedPreferences("pref", MODE_PRIVATE);
         mdb = new DataBaseHelper(this);
         mdb.open();
-        mMonitor = new Monitor(this, mdb, getUUID());
-        sendUserInfo();
+        mConfig = new Config(this);
+
+        createUUID(mConfig);
+
+        if (!mConfig.isSendUserInfo()) {
+            sendUserInfo(mConfig.getUserName(), mConfig.getPhoneNumber());
+        }
+
+        mMonitor = new Monitor(this, mdb, mConfig.getUUID());
     }
 
     @Override
@@ -101,4 +70,35 @@ public class MonitoringService extends Service {
         mdb.close();
     }
 
+
+    private boolean isConnected() {
+        ConnectivityManager connMgr = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
+        return (networkInfo != null && networkInfo.isConnected());
+    }
+
+
+    private void sendUserInfo(String name, String phone) {
+        if (!mConfig.isSendUserInfo() && isConnected()) {
+            new UserInfo(mConfig.getUUID(), name, phone, mConfig).send();
+        }
+    }
+
+    private void createUUID(Config config) {
+        String uuid = config.getUUID();
+        if (uuid.isEmpty()) {
+            uuid = getUUID();
+            config.saveUUID(uuid);
+        }
+    }
+
+    private String getUUID() {
+        TelephonyManager tm = (TelephonyManager) getBaseContext().getSystemService(Context.TELEPHONY_SERVICE);
+        final String tmDevice, tmSerial, androidId;
+        tmDevice = "" + tm.getDeviceId();
+        tmSerial = "" + tm.getSimSerialNumber();
+        androidId = "" + android.provider.Settings.Secure.getString(getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
+        UUID deviceUuid = new UUID(androidId.hashCode(), ((long)tmDevice.hashCode() << 32) | tmSerial.hashCode());
+        return deviceUuid.toString();
+    }
 }

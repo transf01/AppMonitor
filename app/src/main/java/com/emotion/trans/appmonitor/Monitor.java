@@ -39,7 +39,6 @@ public class Monitor implements AppChangeListener{
     private MonitorInfo mInfo = null;
     private DataBaseHelper mdb;
     private String mUUID;
-    private final String HISTORY="history";
 
     public Monitor(Context context, DataBaseHelper db, String uuid) {
         mContext = context;
@@ -91,7 +90,7 @@ public class Monitor implements AppChangeListener{
     }
 
     private String getURLString() {
-        return MonitoringService.HOST+HISTORY;
+        return Config.HISTORY_URL;
     }
 
     @Override

@@ -1,12 +1,9 @@
 package com.emotion.trans.appmonitor;
 
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.database.Cursor;
+import android.app.Activity;
 import android.os.AsyncTask;
 import android.util.Log;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -25,13 +22,13 @@ import java.net.URL;
 public class UserInfo {
 
     private String mUUID, mName, mPhone;
-    private SharedPreferences mPref;
+    private Config mConfig;
 
-    public UserInfo(String uuid, String name, String phone, SharedPreferences pref) {
+    public UserInfo(String uuid, String name, String phone, Config config) {
+        mConfig = config;
         mUUID = uuid;
         mName = name;
         mPhone = phone==null?"None":phone;
-        mPref = pref;
     }
 
     private String getJSONData() {
@@ -48,7 +45,7 @@ public class UserInfo {
 
     public void send() {
         try {
-            PostUser postUser = new PostUser(new URL(MonitoringService.HOST+"user"));
+            PostUser postUser = new PostUser(new URL(Config.USER_URL));
             postUser.execute(getJSONData());
         }catch (MalformedURLException e) {
             e.printStackTrace();
@@ -64,6 +61,7 @@ public class UserInfo {
         @Override
         protected Boolean doInBackground(String... params) {
             try{
+                Log.d("trans", "---------connecting to " + mUrl.toString());
                 HttpURLConnection conn = (HttpURLConnection)mUrl.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Cache-Control", "no-cache");
@@ -104,12 +102,12 @@ public class UserInfo {
         }
 
         @Override
-        protected void onPostExecute(Boolean aBoolean) {
-            super.onPostExecute(aBoolean);
-            Log.d("trans", "--------user save result : " + aBoolean);
-            SharedPreferences.Editor editor = mPref.edit();
-            editor.putBoolean(MonitoringService.IS_SEND_USER_INFO, aBoolean);
-            editor.commit();
+        protected void onPostExecute(Boolean resule) {
+            super.onPostExecute(resule);
+            Log.d("trans", "--------user save result : " + resule);
+            if (resule) {
+                mConfig.saveSuccessSendUserInfo();
+            }
         }
     }
 }
