@@ -63,7 +63,7 @@ public class Monitor implements AppChangeListener{
         addCommandHandler("startMonitoring", new WindowChangeCommandHandler());
         addCommandHandler("screenOn", new ScreenOnCommandHandler());
         addCommandHandler("screenOff", new ScreenOffCommandHandler());
-        addCommandHandler(MonitoringService.SEND_DATA, new SendData());
+        addCommandHandler(MonitoringService.SEND_DATA, new SendHandler());
     }
 
     private void startMonitoring(){
@@ -192,13 +192,16 @@ public class Monitor implements AppChangeListener{
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
-    private class SendData implements CommandHandler {
+    private class SendHandler implements CommandHandler {
 
          @Override
         public void handle(Intent intent, Handler handler, Runnable runnable) {
             try {
-                PostAppHistory post = new PostAppHistory(new URL(getURLString()));
-                post.execute(mdb.getSendData());
+                Cursor cursor = mdb.getSendData();
+                if (cursor.getCount() > 0) {
+                    PostAppHistory post = new PostAppHistory(new URL(getURLString()));
+                    post.execute(mdb.getSendData());
+                }
             } catch (MalformedURLException exception) {
                 exception.printStackTrace();
             }
@@ -211,34 +214,14 @@ public class Monitor implements AppChangeListener{
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
-    private class PostAppHistory extends AsyncTask<Cursor, Void, Cursor> {
+    private class PostAppHistory extends AsyncTask<Cursor, Void, SendData> {
         private URL mUrl;
         public PostAppHistory(URL url) {
             mUrl = url;
         }
-
-        private byte[] getAppHistoryJSONData(Cursor cursor) {
-            Log.d("trans", "make json items["+cursor.getCount()+"]");
-            JSONArray jsonArray = new JSONArray();
-            while (cursor.moveToNext()) {
-                JSONObject object = new JSONObject();
-                try {
-                    object.put("uuid", mUUID);
-                    object.put(DataBaseHelper.APP_NAME, cursor.getString(cursor.getColumnIndex(DataBaseHelper.APP_NAME)));
-                    object.put(DataBaseHelper.PACKAGE_NAME, cursor.getString(cursor.getColumnIndex(DataBaseHelper.PACKAGE_NAME)));
-                    object.put(DataBaseHelper.START_DATE, cursor.getString(cursor.getColumnIndex(DataBaseHelper.START_DATE)));
-                    object.put(DataBaseHelper.START_TIME, cursor.getString(cursor.getColumnIndex(DataBaseHelper.START_TIME)));
-                    object.put(DataBaseHelper.USE_TIME, cursor.getString(cursor.getColumnIndex(DataBaseHelper.USE_TIME)));
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-                jsonArray.put(object);
-            }
-            return jsonArray.toString().getBytes();
-        }
-
         @Override
-        protected Cursor doInBackground(Cursor... params) {
+        protected SendData doInBackground(Cursor... params) {
+            SendData data = new SendData(params[0]);
             try{
                 HttpURLConnection conn = (HttpURLConnection)mUrl.openConnection();
 //                conn.setConnectTimeout(CONN_TIMEOUT * 1000);
@@ -252,9 +235,8 @@ public class Monitor implements AppChangeListener{
 
                 OutputStream os = conn.getOutputStream();
                 Log.d("trans", "-------------send data");
-                os.write(getAppHistoryJSONData(params[0]));
+                os.write(data.getAppHistoryJSONData());
                 os.flush();
-
 
                 InputStream in;
                 if(conn.getResponseCode() >= HttpURLConnection.HTTP_BAD_REQUEST)
@@ -277,27 +259,80 @@ public class Monitor implements AppChangeListener{
 //                mContext.startActivity(i);
 
                 if (HttpURLConnection.HTTP_CREATED == conn.getResponseCode()) {
-                    return params[0];
+                    data.setResult(true);
+                    return data;
                 }
 
             }catch (IOException e) {
                 e.printStackTrace();
             }
-
-            params[0].close();
-            return null;
+            data.setResult(false);
+            return data;
         }
 
         @Override
-        protected void onPostExecute(Cursor cursor) {
-            super.onPostExecute(cursor);
-            if (cursor != null) {
-                Log.d("trans", "success send app histories : " + cursor.getCount());
-                while (cursor.moveToPrevious()) {
-                    mdb.updateSendFlag(cursor.getString(0));
-                }
-                cursor.close();
+        protected void onPostExecute(SendData data) {
+            super.onPostExecute(data);
+            if (data != null) {
+                data.updateFlag();
             }
+        }
+    }
+
+    private class SendData {
+        boolean mResult = false;
+        Cursor mCursor;
+        public SendData(Cursor cursor) {
+            mCursor = cursor;
+        }
+
+        private void setSentState(Cursor cursor) {
+            mdb.updateSendFlag(cursor.getString(0), 2);
+        }
+
+        private void setSendingState(Cursor cursor) {
+            mdb.updateSendFlag(cursor.getString(0), 1);
+        }
+
+        private void setUnsendState(Cursor cursor) {
+            mdb.updateSendFlag(cursor.getString(0), 0);
+        }
+
+        public byte[] getAppHistoryJSONData() {
+            Log.d("trans", "make json items[" + mCursor.getCount() + "]");
+            JSONArray jsonArray = new JSONArray();
+            while (mCursor.moveToNext()) {
+                setSendingState(mCursor);
+                JSONObject object = new JSONObject();
+                try {
+                    object.put("uuid", mUUID);
+                    object.put(DataBaseHelper.APP_NAME, mCursor.getString(mCursor.getColumnIndex(DataBaseHelper.APP_NAME)));
+                    object.put(DataBaseHelper.PACKAGE_NAME, mCursor.getString(mCursor.getColumnIndex(DataBaseHelper.PACKAGE_NAME)));
+                    object.put(DataBaseHelper.START_DATE, mCursor.getString(mCursor.getColumnIndex(DataBaseHelper.START_DATE)));
+                    object.put(DataBaseHelper.START_TIME, mCursor.getString(mCursor.getColumnIndex(DataBaseHelper.START_TIME)));
+                    object.put(DataBaseHelper.USE_TIME, mCursor.getString(mCursor.getColumnIndex(DataBaseHelper.USE_TIME)));
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                jsonArray.put(object);
+            }
+            return jsonArray.toString().getBytes();
+        }
+
+        public void setResult(boolean result){
+            mResult = result;
+        }
+
+        public void updateFlag() {
+            Log.d("trans", "sent histories[" + mCursor.getCount() + "] : " + mResult);
+            while (mCursor.moveToPrevious()) {
+                if (mResult) {
+                    setSentState(mCursor);
+                }else {
+                    setUnsendState(mCursor);
+                }
+            }
+            mCursor.close();
         }
     }
 }

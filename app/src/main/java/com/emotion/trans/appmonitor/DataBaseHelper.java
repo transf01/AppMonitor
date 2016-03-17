@@ -63,9 +63,9 @@ public class DataBaseHelper{
         return mdb.rawQuery(query, new String[]{});
     }
 
-    public void updateSendFlag(String rowid) {
+    public void updateSendFlag(String rowid, int flag) {
         ContentValues value = new ContentValues();
-        value.put(IS_SEND, 1);
+        value.put(IS_SEND, flag);
         mdb.update(TABLE_NAME, value, "rowid=?", new String[]{rowid});
     }
 
