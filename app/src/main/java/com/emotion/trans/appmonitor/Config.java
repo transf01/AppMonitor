@@ -11,7 +11,7 @@ public class Config {
     public static final int REQUEST_CODE = 100;
 
     //public static final String HOST = "http://192.168.0.63:8000/api/";
-    public static final String HOST = "http://155.230.193.102:8000/api/";
+    public static final String HOST = "http://155.230.192.46:8000/api/";
 
     public static final String HISTORY_URL = HOST + "history";
     public static final String USER_URL = HOST + "user";

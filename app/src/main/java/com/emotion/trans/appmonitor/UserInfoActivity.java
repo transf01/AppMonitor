@@ -25,11 +25,6 @@ public class UserInfoActivity extends AppCompatActivity {
         mConfig = new Config(this);
 
         final EditText mPhoneText = (EditText)findViewById(R.id.phoneText);
-        TelephonyManager tm = (TelephonyManager) getBaseContext().getSystemService(Context.TELEPHONY_SERVICE);
-        String phone = tm.getLine1Number();
-        if (phone != null)
-            mPhoneText.setText(phone);
-
         final EditText mNameText = (EditText)findViewById(R.id.nameText);
         String name = mConfig.getUserName();
         if (!name.isEmpty())

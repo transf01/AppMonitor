@@ -11,6 +11,7 @@ import android.os.IBinder;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
+import java.util.Date;
 import java.util.UUID;
 
 
@@ -49,15 +50,14 @@ public class MonitoringService extends Service {
 
         createUUID(mConfig);
 
-        if (!mConfig.isSendUserInfo()) {
-            sendUserInfo(mConfig.getUserName(), mConfig.getPhoneNumber());
-        }
-
         mMonitor = new Monitor(this, mdb, mConfig.getUUID());
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        if (!mConfig.isSendUserInfo()) {
+            sendUserInfo(mConfig.getUserName(), mConfig.getPhoneNumber());
+        }
         mMonitor.handleCommand(intent);
         return super.onStartCommand(intent, flags, startId);
     }
@@ -93,12 +93,7 @@ public class MonitoringService extends Service {
     }
 
     private String getUUID() {
-        TelephonyManager tm = (TelephonyManager) getBaseContext().getSystemService(Context.TELEPHONY_SERVICE);
-        final String tmDevice, tmSerial, androidId;
-        tmDevice = "" + tm.getDeviceId();
-        tmSerial = "" + tm.getSimSerialNumber();
-        androidId = "" + android.provider.Settings.Secure.getString(getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
-        UUID deviceUuid = new UUID(androidId.hashCode(), ((long)tmDevice.hashCode() << 32) | tmSerial.hashCode());
+        UUID deviceUuid = new UUID(mConfig.getUserName().hashCode(), ((long)mConfig.getPhoneNumber().hashCode() << 32) | new Date().hashCode());
         return deviceUuid.toString();
     }
 }
