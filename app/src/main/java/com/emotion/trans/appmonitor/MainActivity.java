@@ -75,7 +75,6 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             case R.id.information:
                 activeInformationDialog();
-                testAdd(mDB);
                  return true;
             case R.id.debug_print:
 //                clear(mDB);
