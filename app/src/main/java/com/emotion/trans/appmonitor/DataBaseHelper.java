@@ -15,6 +15,7 @@ import java.util.Date;
  */
 public class DataBaseHelper{
 
+    private final int MAX_SEND_ITEM_COUNT = 30;
     private final String TABLE_NAME = "app_stat";
     public static final String APP_NAME = "app_name";
     public static final String PACKAGE_NAME = "package_name";
@@ -76,7 +77,8 @@ public class DataBaseHelper{
     }
 
     public Cursor getSendData() {
-        String query = String.format("select rowid, * from %1$s where is_send = 0", TABLE_NAME);
+        String query = String.format("select rowid, * from %1$s where is_send = 0  ORDER BY %2$s, %3$s ASC limit %4$d",
+                TABLE_NAME, START_DATE, START_TIME, MAX_SEND_ITEM_COUNT);
         return mdb.rawQuery(query, new String[]{});
     }
 

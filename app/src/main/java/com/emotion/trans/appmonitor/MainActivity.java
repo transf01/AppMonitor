@@ -15,7 +15,9 @@ import android.view.MenuItem;
 import android.widget.ExpandableListView;
 import android.widget.TextView;
 
+import java.util.Calendar;
 import java.util.Date;
+import java.util.GregorianCalendar;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -78,6 +80,7 @@ public class MainActivity extends AppCompatActivity {
                  return true;
             case R.id.debug_print:
 //                clear(mDB);
+               // testAdd(mDB);
                 debugAllPrint(mDB);
                  return true;
         }
@@ -93,7 +96,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void testAdd(DataBaseHelper db) {
-        long millis = System.currentTimeMillis();
+        long millis = new GregorianCalendar(2015, Calendar.FEBRUARY, 17).getTimeInMillis();
+
         for (int i = 0; i < 1000; i++) {
             db.addData(String.format("test-%1$d", i), "test", new Date(millis+i*1000), i);
         }

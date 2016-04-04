@@ -275,7 +275,14 @@ public class Monitor implements AppChangeListener{
             super.onPostExecute(data);
             if (data != null) {
                 data.updateFlag();
+                sendRemainData(mContext);
             }
+        }
+
+        private void sendRemainData(Context context) {
+            Intent i = new Intent(mContext, MonitoringService.class);
+            i.setAction(MonitoringService.SEND_DATA);
+            mContext.startService(i);
         }
     }
 
