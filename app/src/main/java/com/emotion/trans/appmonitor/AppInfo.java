@@ -52,12 +52,10 @@ public class AppInfo {
         if (info == null)
             return true;
 
-        if (!info.isValid())
-            return false;
-
-        if (!this.mAppName.equals(info.mAppName) || !this.mPackageName.equals(info.mPackageName))
-            return true;
-
+        if (info.isValid()) {
+            if (!this.mAppName.equals(info.mAppName) || !this.mPackageName.equals(info.mPackageName))
+                return true;
+        }
         return false;
     }
 }

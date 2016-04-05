@@ -82,6 +82,12 @@ public class DataBaseHelper{
         return mdb.rawQuery(query, new String[]{});
     }
 
+    public Cursor getAmbiguousSendData() {
+        String query = String.format("select rowid, * from %1$s where is_send = 1  ORDER BY %2$s, %3$s ASC limit 1",
+                TABLE_NAME, START_DATE, START_TIME);
+        return mdb.rawQuery(query, new String[]{});
+    }
+
     public Cursor getSendDataByRowID(long rowId) {
         String query = String.format("select rowid, * from %1$s where rowid = %2$d", TABLE_NAME, rowId);
         return mdb.rawQuery(query, new String[]{});

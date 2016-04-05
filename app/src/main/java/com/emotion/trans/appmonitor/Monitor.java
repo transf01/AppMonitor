@@ -201,6 +201,15 @@ public class Monitor implements AppChangeListener{
                 if (cursor.getCount() > 0) {
                     PostAppHistory post = new PostAppHistory(new URL(getURLString()));
                     post.execute(mdb.getSendData());
+                } else {
+                    cursor.close();
+                    cursor = mdb.getAmbiguousSendData();
+                    if (cursor.getCount() > 0) {
+                        PostAppHistory post = new PostAppHistory(new URL(getURLString()));
+                        post.execute(mdb.getAmbiguousSendData());
+                    } else {
+                        cursor.close();
+                    }
                 }
             } catch (MalformedURLException exception) {
                 exception.printStackTrace();
@@ -212,16 +221,41 @@ public class Monitor implements AppChangeListener{
 
         }
     }
-
     ///////////////////////////////////////////////////////////////////////////////////////////////
     private class PostAppHistory extends AsyncTask<Cursor, Void, SendData> {
         private URL mUrl;
         public PostAppHistory(URL url) {
             mUrl = url;
         }
+
+        private String getResponse(InputStream in) throws IOException{
+            BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+            StringBuffer response = new StringBuffer();
+            String line;
+            while ((line=reader.readLine()) != null) {
+                response.append(line);
+            }
+            reader.close();
+            return response.toString();
+        }
+
+        private boolean isUniqueError(String response) {
+            Log.d("trans", response);
+            try {
+                JSONArray result = new JSONArray(response).getJSONObject(0).getJSONArray("non_field_errors");
+                if (result.toString().contains("must make a unique set.")) {
+                    Log.d("trans", "****************unique error************");
+                    return true;
+                }
+            }catch (JSONException e) {
+                Log.d("trans", "json exception from http error response");
+            }
+            return false;
+        }
+
         @Override
         protected SendData doInBackground(Cursor... params) {
-            SendData data = new SendData(params[0]);
+            SendData sendData = new SendData(params[0]);
             try{
                 HttpURLConnection conn = (HttpURLConnection)mUrl.openConnection();
 //                conn.setConnectTimeout(CONN_TIMEOUT * 1000);
@@ -235,47 +269,39 @@ public class Monitor implements AppChangeListener{
 
                 OutputStream os = conn.getOutputStream();
                 Log.d("trans", "-------------send data");
-                os.write(data.getAppHistoryJSONData());
+                os.write(sendData.getAppHistoryJSONData());
                 os.flush();
 
-                InputStream in;
-                if(conn.getResponseCode() >= HttpURLConnection.HTTP_BAD_REQUEST)
-                    in = conn.getErrorStream();
-                else
-                    in = conn.getInputStream();
+                int responseCode = conn.getResponseCode();
 
-                BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-                StringBuffer response = new StringBuffer();
-                String line;
-                while ((line=reader.readLine()) != null) {
-                    response.append(line);
-                }
-                reader.close();
-                Log.d("trans", "-------server response------");
-                Log.d("trans", response.toString());
-//                Intent i = new Intent(mContext, WebViewActivity.class);
-//                i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_HISTORY);
-//                i.putExtra("DATA", response.toString());
-//                mContext.startActivity(i);
 
-                if (HttpURLConnection.HTTP_CREATED == conn.getResponseCode()) {
-                    data.setResult(true);
-                    return data;
+                if (HttpURLConnection.HTTP_CREATED == responseCode) {
+                    sendData.setStatus(SendData.SENT);
+                    return sendData;
+                } else if (HttpURLConnection.HTTP_BAD_REQUEST == responseCode){
+                    if (isUniqueError( getResponse(conn.getErrorStream()))) {
+                        sendData.setStatus(SendData.SENT);
+                        return sendData;
+                    }
+                } else if (HttpURLConnection.HTTP_BAD_REQUEST < responseCode) {
+                    Log.d("trans", "Response [code]:"+responseCode +" [response]:"+getResponse(conn.getErrorStream()));
                 }
 
             }catch (IOException e) {
                 e.printStackTrace();
             }
-            data.setResult(false);
-            return data;
+            sendData.setStatus(SendData.NONE);
+            return sendData;
         }
 
         @Override
-        protected void onPostExecute(SendData data) {
-            super.onPostExecute(data);
-            if (data != null) {
-                data.updateFlag();
-                sendRemainData(mContext);
+        protected void onPostExecute(SendData sendData) {
+            super.onPostExecute(sendData);
+            if (sendData != null) {
+                sendData.updateFlag();
+
+                if (sendData.isSent())
+                    sendRemainData(mContext);
             }
         }
 
@@ -287,29 +313,26 @@ public class Monitor implements AppChangeListener{
     }
 
     private class SendData {
-        boolean mResult = false;
+        public static final int NONE = 0;
+        public static final int SENDING = 1;
+        public static final int SENT = 2;
+
+        int mSendStatus = NONE;
+
         Cursor mCursor;
         public SendData(Cursor cursor) {
             mCursor = cursor;
         }
 
-        private void setSentState(Cursor cursor) {
-            mdb.updateSendFlag(cursor.getString(0), 2);
-        }
-
-        private void setSendingState(Cursor cursor) {
-            mdb.updateSendFlag(cursor.getString(0), 1);
-        }
-
-        private void setUnsendState(Cursor cursor) {
-            mdb.updateSendFlag(cursor.getString(0), 0);
+        private void setSendState(Cursor cursor, int state) {
+            mdb.updateSendFlag(cursor.getString(0), state);
         }
 
         public byte[] getAppHistoryJSONData() {
             Log.d("trans", "make json items[" + mCursor.getCount() + "]");
             JSONArray jsonArray = new JSONArray();
             while (mCursor.moveToNext()) {
-                setSendingState(mCursor);
+                setSendState(mCursor, SENDING);
                 JSONObject object = new JSONObject();
                 try {
                     object.put("uuid", mUUID);
@@ -326,17 +349,19 @@ public class Monitor implements AppChangeListener{
             return jsonArray.toString().getBytes();
         }
 
-        public void setResult(boolean result){
-            mResult = result;
+        public void setStatus(int status){
+            mSendStatus = status;
+        }
+
+        public boolean isSent() {
+            return mSendStatus == SENT;
         }
 
         public void updateFlag() {
-            Log.d("trans", "sent histories[" + mCursor.getCount() + "] : " + mResult);
-            while (mCursor.moveToPrevious()) {
-                if (mResult) {
-                    setSentState(mCursor);
-                }else {
-                    setUnsendState(mCursor);
+            Log.d("trans", "sent histories[" + mCursor.getCount() + "] : " + mSendStatus);
+            if (isSent()) {
+                while (mCursor.moveToPrevious()) {
+                    setSendState(mCursor, mSendStatus);
                 }
             }
             mCursor.close();
