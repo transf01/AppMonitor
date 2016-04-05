@@ -38,9 +38,9 @@ public class Monitor implements AppChangeListener{
     private Date mAppStartTime;
     private MonitorInfo mInfo = null;
     private DataBaseHelper mdb;
-    private String mUUID;
+    private Config mConfig;
 
-    public Monitor(Context context, DataBaseHelper db, String uuid) {
+    public Monitor(Context context, DataBaseHelper db, Config config) {
         mContext = context;
         mHandler = new Handler();
         mRunnable = new Runnable() {
@@ -50,7 +50,8 @@ public class Monitor implements AppChangeListener{
             }
         };
         mdb = db;
-        mUUID = uuid;
+        mConfig = config;
+
         initCommandHandlerMap();
     }
 
@@ -194,26 +195,44 @@ public class Monitor implements AppChangeListener{
     ///////////////////////////////////////////////////////////////////////////////////////////////
     private class SendHandler implements CommandHandler {
 
-         @Override
-        public void handle(Intent intent, Handler handler, Runnable runnable) {
+        private int sendData(Cursor cursor) {
+            int count = cursor.getCount();
+
             try {
-                Cursor cursor = mdb.getSendData();
-                if (cursor.getCount() > 0) {
+                if (count > 0) {
                     PostAppHistory post = new PostAppHistory(new URL(getURLString()));
-                    post.execute(mdb.getSendData());
+                    post.execute(cursor);
                 } else {
                     cursor.close();
-                    cursor = mdb.getAmbiguousSendData();
-                    if (cursor.getCount() > 0) {
-                        PostAppHistory post = new PostAppHistory(new URL(getURLString()));
-                        post.execute(mdb.getAmbiguousSendData());
-                    } else {
-                        cursor.close();
-                    }
                 }
             } catch (MalformedURLException exception) {
                 exception.printStackTrace();
             }
+            return count;
+        }
+
+        private boolean isConnected() {
+            ConnectivityManager connMgr = (ConnectivityManager)mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
+            return (networkInfo != null && networkInfo.isConnected());
+        }
+
+
+        private void sendUserInfo(String name, String phone) {
+            if (!mConfig.isSendUserInfo() && isConnected()) {
+                new UserInfo(mConfig.getUUID(), name, phone, mConfig).send();
+            }
+        }
+
+         @Override
+        public void handle(Intent intent, Handler handler, Runnable runnable) {
+            if (sendData(mdb.getSendData()) == 0) {
+                sendData(mdb.getAmbiguousSendData());
+            }
+
+             if (!mConfig.isSendUserInfo()) {
+                 sendUserInfo(mConfig.getUserName(), mConfig.getPhoneNumber());
+             }
         }
 
         @Override
@@ -335,7 +354,7 @@ public class Monitor implements AppChangeListener{
                 setSendState(mCursor, SENDING);
                 JSONObject object = new JSONObject();
                 try {
-                    object.put("uuid", mUUID);
+                    object.put("uuid", mConfig.getUUID());
                     object.put(DataBaseHelper.APP_NAME, mCursor.getString(mCursor.getColumnIndex(DataBaseHelper.APP_NAME)));
                     object.put(DataBaseHelper.PACKAGE_NAME, mCursor.getString(mCursor.getColumnIndex(DataBaseHelper.PACKAGE_NAME)));
                     object.put(DataBaseHelper.START_DATE, mCursor.getString(mCursor.getColumnIndex(DataBaseHelper.START_DATE)));

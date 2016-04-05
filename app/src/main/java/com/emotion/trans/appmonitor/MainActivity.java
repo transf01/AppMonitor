@@ -78,6 +78,11 @@ public class MainActivity extends AppCompatActivity {
             case R.id.information:
                 activeInformationDialog();
                  return true;
+            case R.id.debug_print:
+//                clear(mDB);
+                testAdd(mDB);
+                debugAllPrint(mDB);
+                 return true;
         }
         return false;
     }
