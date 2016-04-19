@@ -261,6 +261,7 @@ public class Monitor implements AppChangeListener{
                 try {
                     JSONArray array = new JSONArray(response.toString());
                     if (array.length() > 0) {
+                        Log.d("trans", "[update] this history can be checked from server. update to sent state");
                         mdb.updateSendFlag(cursor.getString(0), SENT);
                         return;
                     }
@@ -268,6 +269,7 @@ public class Monitor implements AppChangeListener{
                     e.printStackTrace();
                 }
             }
+            Log.d("trans", "[update] this history update to init state");
             mdb.updateSendFlag(cursor.getString(0), NONE);
             return;
          }
