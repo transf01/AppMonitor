@@ -24,7 +24,6 @@ import java.net.URL;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.UUID;
 
 /**
  * Created by trans on 2016-02-02.
@@ -65,7 +64,7 @@ public class Monitor implements AppChangeListener{
     }
 
     private void initCommandHandlerMap() {
-        addCommandHandler("startMonitoring", new WindowChangeCommandHandler());
+        addCommandHandler(MonitoringService.START_MONITORING, new WindowChangeCommandHandler());
         addCommandHandler("screenOn", new ScreenOnCommandHandler());
         addCommandHandler("screenOff", new ScreenOffCommandHandler());
         addCommandHandler(MonitoringService.SEND_DATA, new SendHandler());

@@ -17,6 +17,7 @@ import java.util.UUID;
 
 public class MonitoringService extends Service {
     public static final String SEND_DATA = "SEND_DATA";
+    public static final String START_MONITORING = "startMonitoring";
 
     private ScreenReceiver mScreenReceiver = new ScreenReceiver();
     private Monitor mMonitor = null;
