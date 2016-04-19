@@ -24,6 +24,7 @@ import java.net.URL;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.UUID;
 
 /**
  * Created by trans on 2016-02-02.
@@ -38,9 +39,9 @@ public class Monitor implements AppChangeListener{
     private Date mAppStartTime;
     private MonitorInfo mInfo = null;
     private DataBaseHelper mdb;
-    private String mUUID;
+    private Config mConfig;
 
-    public Monitor(Context context, DataBaseHelper db, String uuid) {
+    public Monitor(Context context, DataBaseHelper db) {
         mContext = context;
         mHandler = new Handler();
         mRunnable = new Runnable() {
@@ -50,7 +51,7 @@ public class Monitor implements AppChangeListener{
             }
         };
         mdb = db;
-        mUUID = uuid;
+        mConfig = new Config(context);
         initCommandHandlerMap();
     }
 
@@ -89,22 +90,13 @@ public class Monitor implements AppChangeListener{
         return (networkInfo != null && networkInfo.getType() == ConnectivityManager.TYPE_WIFI && networkInfo.isConnected());
     }
 
-    private String getURLString() {
-        return Config.HISTORY_URL;
-    }
-
     @Override
     public void handleAppStop(Date endTime) {
         if (mInfo != null) {
             long rowid = mInfo.save(endTime);
             mInfo = null;
             if(isWiFiConnected()) {
-                try {
-                    PostAppHistory post = new PostAppHistory(new URL(getURLString()));
-                    post.execute(mdb.getSendDataByRowID(rowid));
-                } catch (MalformedURLException exception) {
-                    exception.printStackTrace();
-                }
+                mContext.startService(new Intent(mContext, MonitoringService.class).setAction(MonitoringService.SEND_DATA));
             }
         }
     }
@@ -194,17 +186,26 @@ public class Monitor implements AppChangeListener{
     ///////////////////////////////////////////////////////////////////////////////////////////////
     private class SendHandler implements CommandHandler {
 
+        private URL getURL() {
+            try{
+                return new URL(Config.HISTORY_URL);
+            }catch (MalformedURLException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+
          @Override
         public void handle(Intent intent, Handler handler, Runnable runnable) {
-            try {
-                Cursor cursor = mdb.getSendData();
-                if (cursor.getCount() > 0) {
-                    PostAppHistory post = new PostAppHistory(new URL(getURLString()));
-                    post.execute(mdb.getSendData());
-                }
-            } catch (MalformedURLException exception) {
-                exception.printStackTrace();
-            }
+             if (!mConfig.isSendUserInfo()) {
+                 new UserInfo(mConfig).send();
+             } else {
+                 Cursor cursor = mdb.getSendData();
+                 if (cursor.getCount() > 0) {
+                     PostAppHistory post = new PostAppHistory(getURL());
+                     post.execute(mdb.getSendData());
+                 }
+             }
         }
 
         @Override
@@ -219,54 +220,72 @@ public class Monitor implements AppChangeListener{
         public PostAppHistory(URL url) {
             mUrl = url;
         }
+
+        private HttpURLConnection getConnection(URL url) throws  IOException{
+            HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Cache-Control", "no-cache");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Accept", "application/json");
+            conn.setDoOutput(true);
+            conn.setDoInput(true);
+            return conn;
+        }
+
+        private void request(HttpURLConnection conn, SendData data) throws IOException{
+            OutputStream os = conn.getOutputStream();
+            os.write(data.getAppHistoryJSONData());
+            os.flush();
+        }
+
+        private StringBuffer checkResponse(HttpURLConnection conn, SendData data) throws IOException{
+            InputStream in;
+            if(conn.getResponseCode() >= HttpURLConnection.HTTP_BAD_REQUEST)
+                in = conn.getErrorStream();
+            else
+                in = conn.getInputStream();
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+            StringBuffer response = new StringBuffer();
+            String line;
+            while ((line=reader.readLine()) != null) {
+                response.append(line);
+            }
+            reader.close();
+
+            if (HttpURLConnection.HTTP_CREATED == conn.getResponseCode()) {
+                data.setResult(true);
+            }
+
+            return response;
+        }
+
+        private void debugResponse(StringBuffer response) {
+            Log.d("trans", "-------server response------");
+            Log.d("trans", response.toString());
+//            Intent i = new Intent(mContext, WebViewActivity.class);
+//            i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_HISTORY);
+//            i.putExtra("DATA", response.toString());
+//            mContext.startActivity(i);
+        }
+
         @Override
         protected SendData doInBackground(Cursor... params) {
             SendData data = new SendData(params[0]);
+            HttpURLConnection conn = null;
             try{
-                HttpURLConnection conn = (HttpURLConnection)mUrl.openConnection();
-//                conn.setConnectTimeout(CONN_TIMEOUT * 1000);
-//                conn.setReadTimeout(READ_TIMEOUT * 1000);
-                conn.setRequestMethod("POST");
-                conn.setRequestProperty("Cache-Control", "no-cache");
-                conn.setRequestProperty("Content-Type", "application/json");
-                conn.setRequestProperty("Accept", "application/json");
-                conn.setDoOutput(true);
-                conn.setDoInput(true);
-
-                OutputStream os = conn.getOutputStream();
-                Log.d("trans", "-------------send data");
-                os.write(data.getAppHistoryJSONData());
-                os.flush();
-
-                InputStream in;
-                if(conn.getResponseCode() >= HttpURLConnection.HTTP_BAD_REQUEST)
-                    in = conn.getErrorStream();
-                else
-                    in = conn.getInputStream();
-
-                BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-                StringBuffer response = new StringBuffer();
-                String line;
-                while ((line=reader.readLine()) != null) {
-                    response.append(line);
-                }
-                reader.close();
-                Log.d("trans", "-------server response------");
-                Log.d("trans", response.toString());
-//                Intent i = new Intent(mContext, WebViewActivity.class);
-//                i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_HISTORY);
-//                i.putExtra("DATA", response.toString());
-//                mContext.startActivity(i);
-
-                if (HttpURLConnection.HTTP_CREATED == conn.getResponseCode()) {
-                    data.setResult(true);
-                    return data;
-                }
+                conn = getConnection(mUrl);
+                request(conn,data);
+                StringBuffer response = checkResponse(conn, data);
+                debugResponse(response);
 
             }catch (IOException e) {
                 e.printStackTrace();
+            } finally {
+                if (conn != null) {
+                    conn.disconnect();
+                }
             }
-            data.setResult(false);
             return data;
         }
 
@@ -306,13 +325,12 @@ public class Monitor implements AppChangeListener{
         }
 
         public byte[] getAppHistoryJSONData() {
-            Log.d("trans", "make json items[" + mCursor.getCount() + "]");
             JSONArray jsonArray = new JSONArray();
             while (mCursor.moveToNext()) {
                 setSendingState(mCursor);
                 JSONObject object = new JSONObject();
                 try {
-                    object.put("uuid", mUUID);
+                    object.put("uuid", mConfig.getUUID());
                     object.put(DataBaseHelper.APP_NAME, mCursor.getString(mCursor.getColumnIndex(DataBaseHelper.APP_NAME)));
                     object.put(DataBaseHelper.PACKAGE_NAME, mCursor.getString(mCursor.getColumnIndex(DataBaseHelper.PACKAGE_NAME)));
                     object.put(DataBaseHelper.START_DATE, mCursor.getString(mCursor.getColumnIndex(DataBaseHelper.START_DATE)));
@@ -323,6 +341,7 @@ public class Monitor implements AppChangeListener{
                 }
                 jsonArray.put(object);
             }
+            Log.d("trans", "json[" + mCursor.getCount() + "]"+jsonArray.toString());
             return jsonArray.toString().getBytes();
         }
 

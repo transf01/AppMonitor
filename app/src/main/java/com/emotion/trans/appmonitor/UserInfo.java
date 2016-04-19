@@ -21,22 +21,20 @@ import java.net.URL;
  */
 public class UserInfo {
 
-    private String mUUID, mName, mPhone;
+
     private Config mConfig;
 
-    public UserInfo(String uuid, String name, String phone, Config config) {
+    public UserInfo(Config config) {
         mConfig = config;
-        mUUID = uuid;
-        mName = name;
-        mPhone = phone==null?"None":phone;
+
     }
 
     private String getJSONData() {
         JSONObject object = new JSONObject();
         try {
-            object.put("uuid", mUUID);
-            object.put("name", mName);
-            object.put("cellphone", mPhone);
+            object.put("uuid", mConfig.getUUID());
+            object.put("name", mConfig.getUserName());
+            object.put("cellphone", mConfig.getPhoneNumber());
         }catch (JSONException e) {
             e.printStackTrace();
         }

@@ -80,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
                  return true;
             case R.id.debug_print:
 //                clear(mDB);
-               // testAdd(mDB);
+                testAdd(mDB);
                 debugAllPrint(mDB);
                  return true;
         }

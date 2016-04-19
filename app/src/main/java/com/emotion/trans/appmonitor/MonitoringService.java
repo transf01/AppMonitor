@@ -21,7 +21,6 @@ public class MonitoringService extends Service {
     private ScreenReceiver mScreenReceiver = new ScreenReceiver();
     private Monitor mMonitor = null;
     private DataBaseHelper mdb;
-    private Config mConfig;
 
       @Override
     public IBinder onBind(Intent intent) {
@@ -46,18 +45,11 @@ public class MonitoringService extends Service {
         registerScreenReceiver();
         mdb = new DataBaseHelper(this);
         mdb.open();
-        mConfig = new Config(this);
-
-        createUUID(mConfig);
-
-        mMonitor = new Monitor(this, mdb, mConfig.getUUID());
+        mMonitor = new Monitor(this, mdb);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (!mConfig.isSendUserInfo()) {
-            sendUserInfo(mConfig.getUserName(), mConfig.getPhoneNumber());
-        }
         mMonitor.handleCommand(intent);
         return super.onStartCommand(intent, flags, startId);
     }
@@ -68,32 +60,5 @@ public class MonitoringService extends Service {
         unregisterScreenReceiver();
         mMonitor.clearHandler();
         mdb.close();
-    }
-
-
-    private boolean isConnected() {
-        ConnectivityManager connMgr = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
-        return (networkInfo != null && networkInfo.isConnected());
-    }
-
-
-    private void sendUserInfo(String name, String phone) {
-        if (!mConfig.isSendUserInfo() && isConnected()) {
-            new UserInfo(mConfig.getUUID(), name, phone, mConfig).send();
-        }
-    }
-
-    private void createUUID(Config config) {
-        String uuid = config.getUUID();
-        if (uuid.isEmpty()) {
-            uuid = getUUID();
-            config.saveUUID(uuid);
-        }
-    }
-
-    private String getUUID() {
-        UUID deviceUuid = new UUID(mConfig.getUserName().hashCode(), ((long)mConfig.getPhoneNumber().hashCode() << 32) | new Date().hashCode());
-        return deviceUuid.toString();
     }
 }

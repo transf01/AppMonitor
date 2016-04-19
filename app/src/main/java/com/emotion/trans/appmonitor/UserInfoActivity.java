@@ -11,6 +11,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 
+import java.util.Date;
 import java.util.UUID;
 
 public class UserInfoActivity extends AppCompatActivity {
@@ -39,11 +40,17 @@ public class UserInfoActivity extends AppCompatActivity {
                 if (!name.isEmpty() && !phone.isEmpty()) {
                     mConfig.setUserName(name);
                     mConfig.setPhoneNumber(phone);
+                    mConfig.saveUUID(getUUID());
                     setResult(RESULT_OK);
                     finish();
                 }
             }
         });
+    }
+
+    private String getUUID() {
+        UUID deviceUuid = new UUID(mConfig.getUserName().hashCode(), ((long)mConfig.getPhoneNumber().hashCode() << 32) | new Date().hashCode());
+        return deviceUuid.toString();
     }
 
 
