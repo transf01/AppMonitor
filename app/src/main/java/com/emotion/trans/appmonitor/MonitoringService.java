@@ -22,7 +22,7 @@ public class MonitoringService extends Service {
     private Monitor mMonitor = null;
     private DataBaseHelper mdb;
 
-      @Override
+    @Override
     public IBinder onBind(Intent intent) {
         // TODO: Return the communication channel to the service.
         throw new UnsupportedOperationException("Not yet implemented");
@@ -62,3 +62,4 @@ public class MonitoringService extends Service {
         mdb.close();
     }
 }
+

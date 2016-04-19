@@ -213,7 +213,6 @@ public class Monitor implements AppChangeListener{
 
         }
     }
-
     ///////////////////////////////////////////////////////////////////////////////////////////////
     private class PostAppHistory extends AsyncTask<Cursor, Void, SendData> {
         private URL mUrl;
@@ -254,7 +253,7 @@ public class Monitor implements AppChangeListener{
             reader.close();
 
             if (HttpURLConnection.HTTP_CREATED == conn.getResponseCode()) {
-                data.setResult(true);
+                data.setStatus(SendData.SENT);
             }
 
             return response;
@@ -278,7 +277,6 @@ public class Monitor implements AppChangeListener{
                 request(conn,data);
                 StringBuffer response = checkResponse(conn, data);
                 debugResponse(response);
-
             }catch (IOException e) {
                 e.printStackTrace();
             } finally {
@@ -290,11 +288,12 @@ public class Monitor implements AppChangeListener{
         }
 
         @Override
-        protected void onPostExecute(SendData data) {
-            super.onPostExecute(data);
-            if (data != null) {
-                data.updateFlag();
-                sendRemainData(mContext);
+        protected void onPostExecute(SendData sendData) {
+            super.onPostExecute(sendData);
+            if (sendData != null) {
+                sendData.updateFlag();
+                if (sendData.isSent())
+                    sendRemainData(mContext);
             }
         }
 
@@ -306,28 +305,25 @@ public class Monitor implements AppChangeListener{
     }
 
     private class SendData {
-        boolean mResult = false;
+        public static final int NONE = 0;
+        public static final int SENDING = 1;
+        public static final int SENT = 2;
+
+        int mSendStatus = NONE;
+
         Cursor mCursor;
         public SendData(Cursor cursor) {
             mCursor = cursor;
         }
 
-        private void setSentState(Cursor cursor) {
-            mdb.updateSendFlag(cursor.getString(0), 2);
-        }
-
-        private void setSendingState(Cursor cursor) {
-            mdb.updateSendFlag(cursor.getString(0), 1);
-        }
-
-        private void setUnsendState(Cursor cursor) {
-            mdb.updateSendFlag(cursor.getString(0), 0);
+        private void setSendState(Cursor cursor, int state) {
+            mdb.updateSendFlag(cursor.getString(0), state);
         }
 
         public byte[] getAppHistoryJSONData() {
             JSONArray jsonArray = new JSONArray();
             while (mCursor.moveToNext()) {
-                setSendingState(mCursor);
+                setSendState(mCursor, SENDING);
                 JSONObject object = new JSONObject();
                 try {
                     object.put("uuid", mConfig.getUUID());
@@ -345,17 +341,19 @@ public class Monitor implements AppChangeListener{
             return jsonArray.toString().getBytes();
         }
 
-        public void setResult(boolean result){
-            mResult = result;
+        public void setStatus(int status){
+            mSendStatus = status;
+        }
+
+        public boolean isSent() {
+            return mSendStatus == SENT;
         }
 
         public void updateFlag() {
-            Log.d("trans", "sent histories[" + mCursor.getCount() + "] : " + mResult);
-            while (mCursor.moveToPrevious()) {
-                if (mResult) {
-                    setSentState(mCursor);
-                }else {
-                    setUnsendState(mCursor);
+            Log.d("trans", "sent histories[" + mCursor.getCount() + "] : " + mSendStatus);
+            if (isSent()) {
+                while (mCursor.moveToPrevious()) {
+                    setSendState(mCursor, mSendStatus);
                 }
             }
             mCursor.close();
