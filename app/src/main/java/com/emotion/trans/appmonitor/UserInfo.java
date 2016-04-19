@@ -1,6 +1,8 @@
 package com.emotion.trans.appmonitor;
 
 import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.util.Log;
 
@@ -21,11 +23,12 @@ import java.net.URL;
  */
 public class UserInfo {
 
-
+    private Context mContext;
     private Config mConfig;
 
-    public UserInfo(Config config) {
+    public UserInfo(Context context, Config config) {
         mConfig = config;
+        mContext = context;
 
     }
 
@@ -105,6 +108,7 @@ public class UserInfo {
             Log.d("trans", "--------user save result : " + resule);
             if (resule) {
                 mConfig.saveSuccessSendUserInfo();
+                mContext.startService(new Intent(mContext, MonitoringService.class).setAction(MonitoringService.SEND_DATA));
             }
         }
     }

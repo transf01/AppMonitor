@@ -31,6 +31,10 @@ import java.util.UUID;
  */
 public class Monitor implements AppChangeListener{
 
+    private static final int NONE = 0;
+    private static final int SENDING = 1;
+    private static final int SENT = 2;
+
     private Context mContext;
     private Handler mHandler;
     private Runnable mRunnable ;
@@ -198,12 +202,21 @@ public class Monitor implements AppChangeListener{
          @Override
         public void handle(Intent intent, Handler handler, Runnable runnable) {
              if (!mConfig.isSendUserInfo()) {
-                 new UserInfo(mConfig).send();
+                 new UserInfo(mContext, mConfig).send();
              } else {
                  Cursor cursor = mdb.getSendData();
                  if (cursor.getCount() > 0) {
                      PostAppHistory post = new PostAppHistory(getURL());
-                     post.execute(mdb.getSendData());
+                     post.execute(cursor);
+                 } else {
+                     cursor.close();
+                     cursor = mdb.getAmbiguousSendData();
+                     if (cursor.getCount() > 0) {
+                         GetAppHistory get = new GetAppHistory();
+                         get.execute(cursor);
+                     }else {
+                         cursor.close();
+                     }
                  }
              }
         }
@@ -211,6 +224,74 @@ public class Monitor implements AppChangeListener{
         @Override
         public void addChangeListener(AppChangeListener listener) {
 
+        }
+    }
+
+    private class GetAppHistory extends AsyncTask<Cursor, Void, Void> {
+
+        private URL getURL(Cursor cursor) throws  MalformedURLException{
+            cursor.moveToNext();
+            String strURL = mConfig.HISTORY_URL + "/" + mConfig.getUUID() +
+                "/date/" + cursor.getString(cursor.getColumnIndex(DataBaseHelper.START_DATE)) +
+                "/time/" + cursor.getString(cursor.getColumnIndex(DataBaseHelper.START_TIME));
+
+            return new URL(strURL);
+
+        }
+
+        private HttpURLConnection getConnection(URL url) throws  IOException{
+            HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Cache-Control", "no-cache");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Accept", "application/json");
+            conn.setDoInput(true);
+            return conn;
+        }
+
+        private void checkResponse(HttpURLConnection conn, Cursor cursor) throws IOException{
+            if (HttpURLConnection.HTTP_OK == conn.getResponseCode()) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuffer response = new StringBuffer();
+                String line;
+                while ((line=reader.readLine()) != null) {
+                    response.append(line);
+                }
+                reader.close();
+                try {
+                    JSONArray array = new JSONArray(response.toString());
+                    if (array.length() > 0) {
+                        mdb.updateSendFlag(cursor.getString(0), SENT);
+                        return;
+                    }
+                }catch(JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+            mdb.updateSendFlag(cursor.getString(0), NONE);
+            return;
+         }
+
+        @Override
+        protected Void doInBackground(Cursor... params) {
+            HttpURLConnection connection = null;
+            try {
+                checkResponse(getConnection(getURL(params[0])), params[0]);
+            }catch (Exception e) {
+                e.printStackTrace();
+            }finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
+            }
+            params[0].close();
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+            mContext.startService(new Intent(mContext, MonitoringService.class).setAction(MonitoringService.SEND_DATA));
         }
     }
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -253,7 +334,7 @@ public class Monitor implements AppChangeListener{
             reader.close();
 
             if (HttpURLConnection.HTTP_CREATED == conn.getResponseCode()) {
-                data.setStatus(SendData.SENT);
+                data.setStatus(SENT);
             }
 
             return response;
@@ -305,10 +386,6 @@ public class Monitor implements AppChangeListener{
     }
 
     private class SendData {
-        public static final int NONE = 0;
-        public static final int SENDING = 1;
-        public static final int SENT = 2;
-
         int mSendStatus = NONE;
 
         Cursor mCursor;
