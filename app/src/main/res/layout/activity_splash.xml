@@ -39,8 +39,16 @@
         android:layout_height="wrap_content"
         android:text="@string/confirm"
         android:id="@+id/ok_button"
-        android:layout_below="@+id/phoneText"
+        android:layout_marginTop="47dp"
+        android:layout_below="@+id/total_test"
+        android:layout_centerHorizontal="true" />
+
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/total_test"
+        android:id="@+id/total_test"
+        android:layout_centerVertical="true"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="50dp"
-        android:layout_alignParentStart="false" />
+        android:checked="true" />
 </RelativeLayout>

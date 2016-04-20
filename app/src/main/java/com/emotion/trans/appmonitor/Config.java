@@ -10,7 +10,7 @@ public class Config {
 
     public static final int REQUEST_CODE = 100;
 
-    public static final String HOST = "http://192.168.0.13:8000/api/";
+    public static final String HOST = "http://192.168.0.26:8000/api/";
     //public static final String HOST = "http://155.230.192.46:8000/api/";
 
     public static final String HISTORY_URL = HOST + "history";
@@ -21,6 +21,7 @@ public class Config {
     private final String KEY_UUID = "UUID";
     private final String KEY_USER_NAME = "NAME";
     private final String KEY_USER_PHONE = "PHONE";
+    private final String EXP_CODE = "EXP_CODE";
     private final String KEY_IS_SEND_USER_INFO = "IS_SEND_USER_INFO";
     private final String KEY_ACCESSIBILITY_WARNING = "accessibility_warning";
 
@@ -80,4 +81,13 @@ public class Config {
         editor.commit();
     }
 
+    public String getExpCode() {
+        return mPref.getString(EXP_CODE, "0");
+    }
+
+    public void setExpCode(String expCode) {
+        SharedPreferences.Editor editor = mPref.edit();
+        editor.putString(EXP_CODE, expCode);
+        editor.commit();
+    }
 }
