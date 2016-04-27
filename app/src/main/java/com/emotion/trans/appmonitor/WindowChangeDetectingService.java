@@ -2,9 +2,7 @@ package com.emotion.trans.appmonitor;
 
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
-import android.content.ComponentName;
 import android.content.Intent;
-import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -37,47 +35,18 @@ public class WindowChangeDetectingService extends AccessibilityService {
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         Log.d("trans", "-----------------------------------");
+        try {
         if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            String logString;
-            if (event.getPackageName() == null)
-            {
-                logString = "package name is null";
-            }
-            else
-            {
                 PackageManager pm = getApplicationContext().getPackageManager();
-                try {
                     ApplicationInfo ai = pm.getApplicationInfo((String) event.getPackageName(), 0);
-                    Intent intent = new Intent("startMonitoring");
-                    intent.setPackage("com.emotion.trans.appmonitor");
+                    Intent intent = new Intent(this, MonitoringService.class).setAction(MonitoringService.START_MONITORING);
                     intent.putExtra("AppName", pm.getApplicationLabel(ai));
                     intent.putExtra("PackageName", event.getPackageName());
                     startService(intent);
-                    logString = (String)pm.getApplicationLabel(ai) + "(" + event.getPackageName()+" / "+event.getClassName()+")";
-                }catch (PackageManager.NameNotFoundException e){
-                    logString = "App name is null";
-                }
+                Log.d("trans",pm.getApplicationLabel(ai) + "(" + event.getPackageName() + " / " + event.getClassName() + ")");
             }
-
-            Log.d("trans", logString);
-
-//            ComponentName componentName = new ComponentName(
-//                    event.getPackageName().toString(),
-//                    event.getClassName().toString()
-//            );
-//
-//            ActivityInfo activityInfo = tryGetActivity(componentName);
-//            boolean isActivity = activityInfo != null;
-//            if (isActivity)
-//                Log.d("trans", componentName.flattenToShortString());
-        }
-    }
-
-    private ActivityInfo tryGetActivity(ComponentName componentName) {
-        try {
-            return getPackageManager().getActivityInfo(componentName, 0);
-        } catch (PackageManager.NameNotFoundException e) {
-            return null;
+        }catch(Exception e) {
+            e.printStackTrace();
         }
     }
 }

@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.telephony.TelephonyManager;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 
 import java.util.Date;
@@ -17,6 +18,7 @@ import java.util.UUID;
 public class UserInfoActivity extends AppCompatActivity {
 
     private EditText mNameText, mPhoneText;
+    private CheckBox mExpCode;
     private Config mConfig;
 
     @Override
@@ -25,8 +27,9 @@ public class UserInfoActivity extends AppCompatActivity {
         setContentView(R.layout.activity_splash);
         mConfig = new Config(this);
 
-        final EditText mPhoneText = (EditText)findViewById(R.id.phoneText);
-        final EditText mNameText = (EditText)findViewById(R.id.nameText);
+        mPhoneText = (EditText)findViewById(R.id.phoneText);
+        mNameText = (EditText)findViewById(R.id.nameText);
+        mExpCode = (CheckBox)findViewById(R.id.total_test);
         String name = mConfig.getUserName();
         if (!name.isEmpty())
             mNameText.setText(name);
@@ -41,6 +44,7 @@ public class UserInfoActivity extends AppCompatActivity {
                     mConfig.setUserName(name);
                     mConfig.setPhoneNumber(phone);
                     mConfig.saveUUID(getUUID());
+                    mConfig.setExpCode(mExpCode.isChecked()?"0":"1");
                     setResult(RESULT_OK);
                     finish();
                 }

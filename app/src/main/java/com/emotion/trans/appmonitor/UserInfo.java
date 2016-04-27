@@ -29,7 +29,6 @@ public class UserInfo {
     public UserInfo(Context context, Config config) {
         mConfig = config;
         mContext = context;
-
     }
 
     private String getJSONData() {
@@ -38,6 +37,7 @@ public class UserInfo {
             object.put("uuid", mConfig.getUUID());
             object.put("name", mConfig.getUserName());
             object.put("cellphone", mConfig.getPhoneNumber());
+            object.put("experiment_code", mConfig.getExpCode());
         }catch (JSONException e) {
             e.printStackTrace();
         }
