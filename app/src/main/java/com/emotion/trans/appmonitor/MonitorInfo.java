@@ -13,12 +13,10 @@ import java.util.Date;
 public class MonitorInfo {
 
     private AppInfo mAppInfo;
-    private Date mStartTime;
     private DataBaseHelper mdb;
 
-    public MonitorInfo(AppInfo appInfo, Date startTime, DataBaseHelper db) {
+    public MonitorInfo(AppInfo appInfo, DataBaseHelper db) {
         mAppInfo = appInfo;
-        mStartTime = startTime;
         mdb = db;
     }
 
@@ -26,16 +24,13 @@ public class MonitorInfo {
         return mAppInfo;
     }
 
-    private long getUseTime(Date endTime) {
-        return (endTime.getTime() - mStartTime.getTime())/1000;
-    }
-
-    public long save(Date endTime) {
-        return mdb.addData(mAppInfo.getAppName(), mAppInfo.getPackageName(), mStartTime, getUseTime(endTime));
+    public long save(RuntimeInfo runtimeInfo) {
+        Log.d("trans", runtimeInfo.toString());
+        return mdb.addData(mAppInfo.getAppName(), mAppInfo.getPackageName(), runtimeInfo);
     }
 
     @Override
     public String toString() {
-        return "[MonitorInfo] App:" + mAppInfo.toString()+"StartTime:"+mStartTime.toString();
+        return "[MonitorInfo] App:" + mAppInfo.toString();
     }
 }

@@ -24,9 +24,6 @@ public class DataBaseHelper{
     public static final String USE_TIME = "use_time";
     private final String IS_SEND = "is_send";
 
-    private SimpleDateFormat mDateFormat = new SimpleDateFormat("yyyy-MM-dd");
-    private SimpleDateFormat mTimeFormat = new SimpleDateFormat("HH:mm:ss");
-
     private Context mContext;
     private DataBaseOpenHelper mOpenHelper;
     private SQLiteDatabase mdb;
@@ -44,13 +41,13 @@ public class DataBaseHelper{
         mdb.close();
     }
 
-    public long addData(String appName, String packageName, Date startTime, long useTime) {
+    public long addData(String appName, String packageName, RuntimeInfo runtimeInfo) {
         ContentValues values = new ContentValues();
         values.put(APP_NAME, appName);
         values.put(PACKAGE_NAME, packageName);
-        values.put(START_DATE, mDateFormat.format(startTime));
-        values.put(START_TIME, mTimeFormat.format(startTime));
-        values.put(USE_TIME, useTime);
+        values.put(START_DATE, runtimeInfo.getStartDateString());
+        values.put(START_TIME, runtimeInfo.getStartTimeString());
+        values.put(USE_TIME, runtimeInfo.getRunTime());
         values.put(IS_SEND, 0);
         return mdb.insert(TABLE_NAME, null, values);
     }
