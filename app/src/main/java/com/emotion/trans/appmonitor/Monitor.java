@@ -70,7 +70,7 @@ public class Monitor implements AppChangeListener{
     }
 
     private void startMonitoring(){
-        if (!mCurrentAppInfo.isHomeApp(mContext)) {
+        if (mCurrentAppInfo.isCheckable(mContext)) {
             mInfo = new MonitorInfo(mCurrentAppInfo, mdb);
             Log.d("trans", "### start : " + mInfo.toString());
         }
