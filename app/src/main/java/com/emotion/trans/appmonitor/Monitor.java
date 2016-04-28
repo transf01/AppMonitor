@@ -95,8 +95,7 @@ public class Monitor implements AppChangeListener{
     @Override
     public void handleAppStop() {
         if (mInfo != null) {
-            mRuntimeInfo.stop();
-            mInfo.save(mRuntimeInfo);
+            mInfo.save(mRuntimeInfo.stop());
             mInfo = null;
             if(isWiFiConnected()) {
                 mContext.startService(new Intent(mContext, MonitoringService.class).setAction(MonitoringService.SEND_DATA));

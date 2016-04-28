@@ -39,28 +39,16 @@ public class AppInfo {
         if (res.activityInfo == null)
             return false;
 
-        if (mPackageName.equals(res.activityInfo.packageName))
-            return true;
+        return mPackageName.equals(res.activityInfo.packageName);
 
-        return false;
     }
 
     public boolean isCheckable(Context context) {
-        if (isHomeApp(context))
-            return false;
-        if (SYSTEM_UI.equals(mPackageName))
-            return false;
-
-        if (SETTINGS.equals(mPackageName))
-            return false;
-
-        return true;
+        return !(isHomeApp(context) || SYSTEM_UI.equals(mPackageName) || SETTINGS.equals(mPackageName));
     }
 
     private boolean isValid() {
-        if (mAppName == null || mPackageName == null)
-            return false;
-        return true;
+        return !(mAppName == null || mPackageName == null);
     }
 
     public boolean isDifferent(AppInfo info) {

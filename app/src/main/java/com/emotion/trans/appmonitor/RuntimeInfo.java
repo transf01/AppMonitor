@@ -26,8 +26,9 @@ public class RuntimeInfo {
         mRunTime = runTime;
     }
 
-    public void stop() {
+    public RuntimeInfo stop() {
         mRunTime = (System.nanoTime() - mStartSystemTime)/1000000000;
+        return this;
     }
 
     public String getStartDateString() {
