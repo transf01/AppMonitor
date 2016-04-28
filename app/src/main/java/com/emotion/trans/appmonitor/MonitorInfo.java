@@ -16,7 +16,7 @@ public class MonitorInfo {
     private Date mStartTime;
     private DataBaseHelper mdb;
 
-    public MonitorInfo(AppInfo appInfo, Date startTime, DataBaseHelper db) {
+    public MonitorInfo(AppInfo appInfo, Date startTime, long startNanotime, DataBaseHelper db) {
         mAppInfo = appInfo;
         mStartTime = startTime;
         mdb = db;
@@ -27,6 +27,7 @@ public class MonitorInfo {
     }
 
     private long getUseTime(Date endTime) {
+        Log.d("trans", "start:" + mStartTime.toString() + " end:" + endTime.toString() + " usetime:" + (endTime.getTime() - mStartTime.getTime())/1000);
         return (endTime.getTime() - mStartTime.getTime())/1000;
     }
 
