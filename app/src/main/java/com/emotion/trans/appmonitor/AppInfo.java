@@ -8,6 +8,9 @@ import android.content.pm.ResolveInfo;
  * Created by trans on 2016-02-02.
  */
 public class AppInfo {
+    private static final String SYSTEM_UI = "com.android.systemui";
+    private static final String SETTINGS = "com.android.settings";
+
     private String mAppName;
     private String mPackageName;
 
@@ -29,7 +32,7 @@ public class AppInfo {
         return mPackageName;
     }
 
-    public boolean isHomeApp(Context context) {
+    private boolean isHomeApp(Context context) {
         Intent intent = new Intent(Intent.ACTION_MAIN);
         intent.addCategory(Intent.CATEGORY_HOME);
         ResolveInfo res = context.getPackageManager().resolveActivity(intent, 0);
@@ -40,6 +43,18 @@ public class AppInfo {
             return true;
 
         return false;
+    }
+
+    public boolean isCheckable(Context context) {
+        if (isHomeApp(context))
+            return false;
+        if (SYSTEM_UI.equals(mPackageName))
+            return false;
+
+        if (SETTINGS.equals(mPackageName))
+            return false;
+
+        return true;
     }
 
     private boolean isValid() {

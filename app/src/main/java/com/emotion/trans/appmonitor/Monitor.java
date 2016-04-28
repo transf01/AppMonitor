@@ -22,7 +22,6 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
 
 /**
@@ -39,7 +38,7 @@ public class Monitor implements AppChangeListener{
     private Runnable mRunnable ;
     private HashMap<String, CommandHandler> mCommandHandlerMap = new HashMap<>();
     private AppInfo mCurrentAppInfo;
-    private Date mAppStartTime;
+    private RuntimeInfo mRuntimeInfo;
     private MonitorInfo mInfo = null;
     private DataBaseHelper mdb;
     private Config mConfig;
@@ -71,8 +70,8 @@ public class Monitor implements AppChangeListener{
     }
 
     private void startMonitoring(){
-        if (!mCurrentAppInfo.isHomeApp(mContext)) {
-            mInfo = new MonitorInfo(mCurrentAppInfo, mAppStartTime, mdb);
+        if (mCurrentAppInfo.isCheckable(mContext)) {
+            mInfo = new MonitorInfo(mCurrentAppInfo, mdb);
             Log.d("trans", "### start : " + mInfo.toString());
         }
     }
@@ -83,8 +82,8 @@ public class Monitor implements AppChangeListener{
     }
 
     @Override
-    public void handleChangedAppStartTime(Date startTime) {
-        mAppStartTime = startTime;
+    public void handleChangedAppStartTime() {
+        mRuntimeInfo = new RuntimeInfo();
     }
 
     private boolean isWiFiConnected() {
@@ -94,9 +93,10 @@ public class Monitor implements AppChangeListener{
     }
 
     @Override
-    public void handleAppStop(Date endTime) {
+    public void handleAppStop() {
         if (mInfo != null) {
-            long rowid = mInfo.save(endTime);
+            mRuntimeInfo.stop();
+            mInfo.save(mRuntimeInfo);
             mInfo = null;
             if(isWiFiConnected()) {
                 mContext.startService(new Intent(mContext, MonitoringService.class).setAction(MonitoringService.SEND_DATA));
@@ -126,7 +126,7 @@ public class Monitor implements AppChangeListener{
         @Override
         public void handle(Intent intent, Handler handler, Runnable runnable) {
             handler.removeCallbacks(runnable);
-            mListener.handleAppStop(Calendar.getInstance().getTime());
+            mListener.handleAppStop();
         }
 
         @Override
@@ -143,7 +143,7 @@ public class Monitor implements AppChangeListener{
         public void handle(Intent intent, Handler handler, Runnable runnable) {
             handler.removeCallbacks(runnable);
             handler.postDelayed(runnable, MONITORING_JUDGE_TIME);
-            mListener.handleChangedAppStartTime(Calendar.getInstance().getTime());
+            mListener.handleChangedAppStartTime();
         }
 
         @Override
@@ -180,8 +180,8 @@ public class Monitor implements AppChangeListener{
             if (mListener == null)
                 return;
 
-            mListener.handleAppStop(Calendar.getInstance().getTime());
-            mListener.handleChangedAppStartTime(Calendar.getInstance().getTime());
+            mListener.handleAppStop();
+            mListener.handleChangedAppStartTime();
             mListener.handleChangedAppInfo(appInfo);
         }
     }

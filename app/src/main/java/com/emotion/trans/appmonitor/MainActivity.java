@@ -99,7 +99,7 @@ public class MainActivity extends AppCompatActivity {
         long millis = new GregorianCalendar(2015, Calendar.FEBRUARY, 17).getTimeInMillis();
 
         for (int i = 0; i < 1000; i++) {
-            db.addData(String.format("test-%1$d", i), "test", new Date(millis+i*1000), i);
+            db.addData(String.format("test-%1$d", i), "test", new RuntimeInfo(new Date(millis+i*1000), i));
         }
     }
 
