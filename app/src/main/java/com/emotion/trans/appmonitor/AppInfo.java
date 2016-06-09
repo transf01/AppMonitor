@@ -8,15 +8,14 @@ import android.content.pm.ResolveInfo;
  * Created by trans on 2016-02-02.
  */
 public class AppInfo {
-    private static final String SYSTEM_UI = "com.android.systemui";
-    private static final String SETTINGS = "com.android.settings";
-
     private String mAppName;
     private String mPackageName;
+    private Config mConfig;
 
-    public AppInfo(String appName, String packageNage) {
+    public AppInfo(String appName, String packageNage, Config config) {
         mAppName = appName;
         mPackageName = packageNage;
+        mConfig = config;
     }
 
     @Override
@@ -44,7 +43,7 @@ public class AppInfo {
     }
 
     public boolean isCheckable(Context context) {
-        return !(isHomeApp(context) || SYSTEM_UI.equals(mPackageName) || SETTINGS.equals(mPackageName));
+        return !(isHomeApp(context) || mConfig.istExcludedPackage(mPackageName));
     }
 
     private boolean isValid() {

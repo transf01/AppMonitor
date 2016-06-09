@@ -10,6 +10,7 @@ import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 
 public class WindowChangeDetectingService extends AccessibilityService {
+
     public WindowChangeDetectingService() {
     }
 
@@ -32,21 +33,25 @@ public class WindowChangeDetectingService extends AccessibilityService {
     @Override
     public void onInterrupt() {}
 
+    private void handleEvent(AccessibilityEvent event) {
+        try {
+            PackageManager pm = getApplicationContext().getPackageManager();
+            ApplicationInfo ai = pm.getApplicationInfo((String) event.getPackageName(), 0);
+            Intent intent = new Intent(this, MonitoringService.class).setAction(MonitoringService.START_MONITORING);
+            intent.putExtra("AppName", pm.getApplicationLabel(ai));
+            intent.putExtra("PackageName", event.getPackageName());
+            startService(intent);
+            Log.d("trans",pm.getApplicationLabel(ai) + "(" + event.getPackageName() + " / " + event.getClassName() + ")");
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         Log.d("trans", "-----------------------------------");
-        try {
         if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-                PackageManager pm = getApplicationContext().getPackageManager();
-                    ApplicationInfo ai = pm.getApplicationInfo((String) event.getPackageName(), 0);
-                    Intent intent = new Intent(this, MonitoringService.class).setAction(MonitoringService.START_MONITORING);
-                    intent.putExtra("AppName", pm.getApplicationLabel(ai));
-                    intent.putExtra("PackageName", event.getPackageName());
-                    startService(intent);
-                Log.d("trans",pm.getApplicationLabel(ai) + "(" + event.getPackageName() + " / " + event.getClassName() + ")");
-            }
-        }catch(Exception e) {
-            e.printStackTrace();
+            handleEvent(event);
         }
     }
 }

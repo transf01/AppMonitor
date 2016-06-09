@@ -3,6 +3,10 @@ package com.emotion.trans.appmonitor;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 /**
  * Created by trans on 2016-03-16.
  */
@@ -15,6 +19,7 @@ public class Config {
 
     public static final String HISTORY_URL = HOST + "history";
     public static final String USER_URL = HOST + "user";
+    public static final String EXCLUDED_PACKAGE_URL = HOST + "excluded_package/";
 
     private final String PREF_NAME = "pref";
 
@@ -22,8 +27,15 @@ public class Config {
     private final String KEY_USER_NAME = "NAME";
     private final String KEY_USER_PHONE = "PHONE";
     private final String EXP_CODE = "EXP_CODE";
+    private final String EXCLUDED_PACKAGE = "EXCLUDED_PACKAGE";
     private final String KEY_IS_SEND_USER_INFO = "IS_SEND_USER_INFO";
     private final String KEY_ACCESSIBILITY_WARNING = "accessibility_warning";
+    private final String DEFAULT_EXCLUDE_PACKAGE = "[{\"package_name\":\"com.android.settings\"}," +
+            "{\"package_name\":\"com.android.keyguard\"}," +
+            "{\"package_name\":\"android\"}," +
+            "{\"package_name\":\"com.cashslide\"}," +
+            "{\"package_name\":\"com.nexon.nxplay\"}," +
+            "{\"package_name\":\"com.android.systemui\"}]\n";
 
     private SharedPreferences mPref;
 
@@ -89,5 +101,34 @@ public class Config {
         SharedPreferences.Editor editor = mPref.edit();
         editor.putString(EXP_CODE, expCode);
         editor.commit();
+    }
+
+    public void setExcludedPackage(JSONArray packags) {
+        StringBuffer strPackags = new StringBuffer();
+
+        if (packags.length() <=0)
+            return;
+
+        SharedPreferences.Editor editor = mPref.edit();
+        editor.putString(EXCLUDED_PACKAGE, packags.toString());
+        editor.commit();
+    }
+
+    public boolean istExcludedPackage(CharSequence packageName) {
+        if (packageName == null || packageName.toString().isEmpty()) {
+            return true;
+        }
+
+        String excludePackages = mPref.getString(EXCLUDED_PACKAGE, DEFAULT_EXCLUDE_PACKAGE);
+        try {
+            JSONArray array = new JSONArray(excludePackages);
+            for (int i = 0; i < array.length(); i++) {
+                if (array.getJSONObject(i).getString("package_name").equals(packageName))
+                    return true;
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 }

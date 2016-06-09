@@ -99,6 +99,9 @@ public class Monitor implements AppChangeListener{
             mInfo = null;
             if(isWiFiConnected()) {
                 mContext.startService(new Intent(mContext, MonitoringService.class).setAction(MonitoringService.SEND_DATA));
+
+                GetExcludedPackage excludedPackage = new GetExcludedPackage();
+                excludedPackage.execute();
             }
         }
     }
@@ -160,7 +163,7 @@ public class Monitor implements AppChangeListener{
 
         public void handle(Intent intent, Handler handler, Runnable runnable) {
 
-            AppInfo appInfo = new AppInfo(intent.getStringExtra("AppName"), intent.getStringExtra("PackageName"));
+            AppInfo appInfo = new AppInfo(intent.getStringExtra("AppName"), intent.getStringExtra("PackageName"), mConfig);
 
             if (appInfo.isDifferent(mPreviousAppInfo)) {
                 handler.removeCallbacks(runnable);
@@ -225,6 +228,60 @@ public class Monitor implements AppChangeListener{
         }
     }
 
+    //////////////////////////////////////////////////////////////////////////////////////////////
+    private class GetExcludedPackage extends AsyncTask<Void, Void, Void> {
+
+        private HttpURLConnection getConnection(String strURL) throws IOException {
+            HttpURLConnection conn = (HttpURLConnection)new URL(strURL).openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Cache-Control", "no-cache");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Accept", "application/json");
+            conn.setDoInput(true);
+            return conn;
+        }
+
+        private void checkResponse(HttpURLConnection conn) throws IOException{
+            if (HttpURLConnection.HTTP_OK == conn.getResponseCode()) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuffer response = new StringBuffer();
+                String line;
+                while ((line=reader.readLine()) != null) {
+                    response.append(line);
+                }
+                reader.close();
+                Log.d("trans", response.toString());
+
+                try {
+                    mConfig.setExcludedPackage(new JSONArray(response.toString()));
+                }catch(JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        @Override
+        protected Void doInBackground(Void... params) {
+            HttpURLConnection connection = null;
+            try {
+                connection = getConnection(Config.EXCLUDED_PACKAGE_URL);
+                checkResponse(connection);
+            }catch (IOException e) {
+                e.printStackTrace();
+            }finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+        }
+    }
+    ///////////////////////////////////////////////////////////////////////////////////////////////
     private class GetAppHistory extends AsyncTask<Cursor, Void, Void> {
 
         private URL getURL(Cursor cursor) throws  MalformedURLException{
@@ -276,7 +333,8 @@ public class Monitor implements AppChangeListener{
         protected Void doInBackground(Cursor... params) {
             HttpURLConnection connection = null;
             try {
-                checkResponse(getConnection(getURL(params[0])), params[0]);
+                connection = getConnection(getURL(params[0]));
+                checkResponse(connection, params[0]);
             }catch (Exception e) {
                 e.printStackTrace();
             }finally {
