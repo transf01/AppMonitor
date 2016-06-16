@@ -120,9 +120,10 @@ public class Config {
         editor.commit();
     }
 
-    public void setBaseURL(JSONObject host) {
+    public void setBaseURL(String baseURL) {
         try {
-            String hostString = host.getString("host");
+            JSONObject urlJSON = new JSONObject(baseURL);
+            String hostString = urlJSON.getString("host");
             if (hostString != null && !hostString.isEmpty()) {
                 SharedPreferences.Editor editor = mPref.edit();
                 editor.putString(BASE_URL, hostString);

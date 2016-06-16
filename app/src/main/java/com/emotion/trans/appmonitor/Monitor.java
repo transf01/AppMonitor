@@ -247,20 +247,12 @@ public class Monitor implements AppChangeListener{
         //////////////////////////////////////////////////////////////////////////////////////////////
     private class GetHostAddress extends AsyncTask<Void, Void, Void> {
 
-        private void checkResponse(HttpURLConnection conn) throws IOException{
-             try {
-                JSONObject host = new JSONObject(getResponse(conn));
-            }catch(JSONException e) {
-                e.printStackTrace();
-            }
-        }
-
         @Override
         protected Void doInBackground(Void... params) {
             HttpURLConnection connection = null;
             try {
                 connection = getConnection(mConfig.getQueryBaseURLStringURL());
-                checkResponse(connection);
+                mConfig.setBaseURL(getResponse(connection));
             } catch(IOException e) {
                 e.printStackTrace();
             } finally {
@@ -275,25 +267,17 @@ public class Monitor implements AppChangeListener{
 
     //////////////////////////////////////////////////////////////////////////////////////////////
     private class GetExcludedPackage extends AsyncTask<Void, Void, Void> {
-
-
-        private void checkResponse(HttpURLConnection conn) throws IOException{
-            try {
-                mConfig.setExcludedPackage(new JSONArray(getResponse(conn)));
-            }catch(JSONException e) {
-                e.printStackTrace();
-            }
-        }
-
         @Override
         protected Void doInBackground(Void... params) {
             HttpURLConnection connection = null;
             try {
                 connection = getConnection(mConfig.getExcludedPackageURL());
-                checkResponse(connection);
+                mConfig.setExcludedPackage(new JSONArray(getResponse(connection)));
             }catch (IOException e) {
                 e.printStackTrace();
-            }finally {
+            } catch (JSONException e) {
+                e.printStackTrace();
+            } finally {
                 if (connection != null) {
                     connection.disconnect();
                 }
