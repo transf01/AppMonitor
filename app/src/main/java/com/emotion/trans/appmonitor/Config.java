@@ -7,6 +7,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+
 /**
  * Created by trans on 2016-03-16.
  */
@@ -14,15 +17,16 @@ public class Config {
 
     public static final int REQUEST_CODE = 100;
 
-    public static final String HOST = "http://192.168.0.26:8000/api/";
-    //public static final String HOST = "http://155.230.192.46:8000/api/";
+//    public static final String HOST = "http://192.168.0.217:8000/api/";
+//    //public static final String HOST = "http://155.230.192.46:8000/api/";
+//
+//    public static final String HISTORY_URL = HOST + "history";
+//    public static final String USER_URL = HOST + "user";
+//    public static final String EXCLUDED_PACKAGE_URL = HOST + "excluded_package/";
 
-    public static final String HISTORY_URL = HOST + "history";
-    public static final String USER_URL = HOST + "user";
-    public static final String EXCLUDED_PACKAGE_URL = HOST + "excluded_package/";
 
     private final String PREF_NAME = "pref";
-
+    private final String BASE_URL = "BASE_URL";
     private final String KEY_UUID = "UUID";
     private final String KEY_USER_NAME = "NAME";
     private final String KEY_USER_PHONE = "PHONE";
@@ -30,6 +34,8 @@ public class Config {
     private final String EXCLUDED_PACKAGE = "EXCLUDED_PACKAGE";
     private final String KEY_IS_SEND_USER_INFO = "IS_SEND_USER_INFO";
     private final String KEY_ACCESSIBILITY_WARNING = "accessibility_warning";
+    private final String DEFAULT_BASE_URL = "http://192.168.0.217:8000/api/";
+    private final String QUERY_BASE_URL_STRING_URL = "http://transf01.github.io/app_monitor_rest/";
     private final String DEFAULT_EXCLUDE_PACKAGE = "[{\"package_name\":\"com.android.settings\"}," +
             "{\"package_name\":\"com.android.keyguard\"}," +
             "{\"package_name\":\"android\"}," +
@@ -114,7 +120,40 @@ public class Config {
         editor.commit();
     }
 
-    public boolean istExcludedPackage(CharSequence packageName) {
+    public void setBaseURL(JSONObject host) {
+        try {
+            String hostString = host.getString("host");
+            if (hostString != null && !hostString.isEmpty()) {
+                SharedPreferences.Editor editor = mPref.edit();
+                editor.putString(BASE_URL, hostString);
+                editor.commit();
+            }
+        }catch(JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String getBaseURLString() {
+        return mPref.getString(BASE_URL, DEFAULT_BASE_URL);
+    }
+
+    public URL getHistoryURL() throws  MalformedURLException{
+        return new URL(getBaseURLString() + "history/");
+    }
+
+    public URL getUserHistoryURL(String startDate, String startTime) throws  MalformedURLException{
+        return new URL(getBaseURLString() + getUUID() + "/date/" + startDate + "/time/" + startTime);
+    }
+
+    public URL getExcludedPackageURL() throws  MalformedURLException{
+        return new URL(getBaseURLString() + "excluded_package/");
+    }
+
+    public URL getQueryBaseURLStringURL() throws MalformedURLException {
+        return new URL(QUERY_BASE_URL_STRING_URL);
+    }
+
+    public boolean isExcludedPackage(CharSequence packageName) {
         if (packageName == null || packageName.toString().isEmpty()) {
             return true;
         }

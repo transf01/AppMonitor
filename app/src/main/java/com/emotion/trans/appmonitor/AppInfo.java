@@ -43,7 +43,7 @@ public class AppInfo {
     }
 
     public boolean isCheckable(Context context) {
-        return !(isHomeApp(context) || mConfig.istExcludedPackage(mPackageName));
+        return !(isHomeApp(context) || mConfig.isExcludedPackage(mPackageName));
     }
 
     private boolean isValid() {
