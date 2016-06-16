@@ -191,23 +191,14 @@ public class Monitor implements AppChangeListener{
     ///////////////////////////////////////////////////////////////////////////////////////////////
     private class SendHandler implements CommandHandler {
 
-        private URL getURL() {
-            try{
-                return new URL(Config.HISTORY_URL);
-            }catch (MalformedURLException e) {
-                e.printStackTrace();
-            }
-            return null;
-        }
-
-         @Override
+        @Override
         public void handle(Intent intent, Handler handler, Runnable runnable) {
              if (!mConfig.isSendUserInfo()) {
                  new UserInfo(mContext, mConfig).send();
              } else {
                  Cursor cursor = mdb.getSendData();
                  if (cursor.getCount() > 0) {
-                     PostAppHistory post = new PostAppHistory(getURL());
+                     PostAppHistory post = new PostAppHistory();
                      post.execute(cursor);
                  } else {
                      cursor.close();
@@ -228,35 +219,39 @@ public class Monitor implements AppChangeListener{
         }
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////////////
-    private class GetExcludedPackage extends AsyncTask<Void, Void, Void> {
+    private HttpURLConnection getConnection(URL url) throws IOException {
+        HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+        conn.setRequestMethod("GET");
+        conn.setRequestProperty("Cache-Control", "no-cache");
+        conn.setRequestProperty("Content-Type", "application/json");
+        conn.setRequestProperty("Accept", "application/json");
+        conn.setDoInput(true);
+        return conn;
+    }
 
-        private HttpURLConnection getConnection(String strURL) throws IOException {
-            HttpURLConnection conn = (HttpURLConnection)new URL(strURL).openConnection();
-            conn.setRequestMethod("GET");
-            conn.setRequestProperty("Cache-Control", "no-cache");
-            conn.setRequestProperty("Content-Type", "application/json");
-            conn.setRequestProperty("Accept", "application/json");
-            conn.setDoInput(true);
-            return conn;
+    private String getResponse(HttpURLConnection conn) throws IOException {
+        if (HttpURLConnection.HTTP_OK == conn.getResponseCode()) {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            StringBuffer response = new StringBuffer();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                response.append(line);
+            }
+            reader.close();
+            Log.d("trans", response.toString());
+            return response.toString();
         }
+        return null;
+    }
+
+        //////////////////////////////////////////////////////////////////////////////////////////////
+    private class GetHostAddress extends AsyncTask<Void, Void, Void> {
 
         private void checkResponse(HttpURLConnection conn) throws IOException{
-            if (HttpURLConnection.HTTP_OK == conn.getResponseCode()) {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                StringBuffer response = new StringBuffer();
-                String line;
-                while ((line=reader.readLine()) != null) {
-                    response.append(line);
-                }
-                reader.close();
-                Log.d("trans", response.toString());
-
-                try {
-                    mConfig.setExcludedPackage(new JSONArray(response.toString()));
-                }catch(JSONException e) {
-                    e.printStackTrace();
-                }
+             try {
+                JSONObject host = new JSONObject(getResponse(conn));
+            }catch(JSONException e) {
+                e.printStackTrace();
             }
         }
 
@@ -264,7 +259,37 @@ public class Monitor implements AppChangeListener{
         protected Void doInBackground(Void... params) {
             HttpURLConnection connection = null;
             try {
-                connection = getConnection(Config.EXCLUDED_PACKAGE_URL);
+                connection = getConnection(mConfig.getQueryBaseURLStringURL());
+                checkResponse(connection);
+            } catch(IOException e) {
+                e.printStackTrace();
+            } finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
+            }
+            return null;
+        }
+    }
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    //////////////////////////////////////////////////////////////////////////////////////////////
+    private class GetExcludedPackage extends AsyncTask<Void, Void, Void> {
+
+
+        private void checkResponse(HttpURLConnection conn) throws IOException{
+            try {
+                mConfig.setExcludedPackage(new JSONArray(getResponse(conn)));
+            }catch(JSONException e) {
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        protected Void doInBackground(Void... params) {
+            HttpURLConnection connection = null;
+            try {
+                connection = getConnection(mConfig.getExcludedPackageURL());
                 checkResponse(connection);
             }catch (IOException e) {
                 e.printStackTrace();
@@ -276,22 +301,14 @@ public class Monitor implements AppChangeListener{
             return null;
         }
 
-        @Override
-        protected void onPostExecute(Void aVoid) {
-            super.onPostExecute(aVoid);
-        }
     }
     ///////////////////////////////////////////////////////////////////////////////////////////////
     private class GetAppHistory extends AsyncTask<Cursor, Void, Void> {
 
         private URL getURL(Cursor cursor) throws  MalformedURLException{
             cursor.moveToNext();
-            String strURL = mConfig.HISTORY_URL + "/" + mConfig.getUUID() +
-                "/date/" + cursor.getString(cursor.getColumnIndex(DataBaseHelper.START_DATE)) +
-                "/time/" + cursor.getString(cursor.getColumnIndex(DataBaseHelper.START_TIME));
-
-            return new URL(strURL);
-
+            return mConfig.getUserHistoryURL(cursor.getString(cursor.getColumnIndex(DataBaseHelper.START_DATE)),
+                    cursor.getString(cursor.getColumnIndex(DataBaseHelper.START_TIME)));
         }
 
         private HttpURLConnection getConnection(URL url) throws  IOException{
@@ -354,10 +371,6 @@ public class Monitor implements AppChangeListener{
     }
     ///////////////////////////////////////////////////////////////////////////////////////////////
     private class PostAppHistory extends AsyncTask<Cursor, Void, SendData> {
-        private URL mUrl;
-        public PostAppHistory(URL url) {
-            mUrl = url;
-        }
 
         private HttpURLConnection getConnection(URL url) throws  IOException{
             HttpURLConnection conn = (HttpURLConnection)url.openConnection();
@@ -412,7 +425,7 @@ public class Monitor implements AppChangeListener{
             SendData data = new SendData(params[0]);
             HttpURLConnection conn = null;
             try{
-                conn = getConnection(mUrl);
+                conn = getConnection(mConfig.getHistoryURL());
                 request(conn,data);
                 StringBuffer response = checkResponse(conn, data);
                 debugResponse(response);
