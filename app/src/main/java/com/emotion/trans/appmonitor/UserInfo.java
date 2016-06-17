@@ -46,7 +46,7 @@ public class UserInfo {
 
     public void send() {
         try {
-            PostUser postUser = new PostUser(new URL(Config.USER_URL));
+            PostUser postUser = new PostUser(mConfig.getUserURL());
             postUser.execute(getJSONData());
         }catch (MalformedURLException e) {
             e.printStackTrace();

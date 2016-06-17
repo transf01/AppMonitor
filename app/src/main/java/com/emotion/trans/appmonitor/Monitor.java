@@ -70,7 +70,7 @@ public class Monitor implements AppChangeListener{
     }
 
     private void startMonitoring(){
-        if (mCurrentAppInfo.isCheckable(mContext)) {
+        if (mCurrentAppInfo != null && mCurrentAppInfo.isCheckable(mContext)) {
             mInfo = new MonitorInfo(mCurrentAppInfo, mdb);
             Log.d("trans", "### start : " + mInfo.toString());
         }
@@ -92,16 +92,24 @@ public class Monitor implements AppChangeListener{
         return (networkInfo != null && networkInfo.getType() == ConnectivityManager.TYPE_WIFI && networkInfo.isConnected());
     }
 
+    private void startGetURLInfo() {
+        Log.d("trans", "****************startGetURLInfo*******************");
+        GetURLInfo infoTask = new GetURLInfo();
+        infoTask.execute();
+    }
+
     @Override
     public void handleAppStop() {
         if (mInfo != null) {
             mInfo.save(mRuntimeInfo.stop());
             mInfo = null;
             if(isWiFiConnected()) {
-                mContext.startService(new Intent(mContext, MonitoringService.class).setAction(MonitoringService.SEND_DATA));
+                startGetURLInfo();
 
                 GetExcludedPackage excludedPackage = new GetExcludedPackage();
                 excludedPackage.execute();
+
+                mContext.startService(new Intent(mContext, MonitoringService.class).setAction(MonitoringService.SEND_DATA));
             }
         }
     }
@@ -187,7 +195,6 @@ public class Monitor implements AppChangeListener{
             mListener.handleChangedAppInfo(appInfo);
         }
     }
-
     ///////////////////////////////////////////////////////////////////////////////////////////////
     private class SendHandler implements CommandHandler {
 
@@ -238,21 +245,20 @@ public class Monitor implements AppChangeListener{
                 response.append(line);
             }
             reader.close();
-            Log.d("trans", response.toString());
             return response.toString();
         }
         return null;
     }
 
         //////////////////////////////////////////////////////////////////////////////////////////////
-    private class GetHostAddress extends AsyncTask<Void, Void, Void> {
+    private class GetURLInfo extends AsyncTask<Void, Void, Void> {
 
         @Override
         protected Void doInBackground(Void... params) {
             HttpURLConnection connection = null;
             try {
                 connection = getConnection(mConfig.getQueryBaseURLStringURL());
-                mConfig.setBaseURL(getResponse(connection));
+                mConfig.setURLInfo(getResponse(connection));
             } catch(IOException e) {
                 e.printStackTrace();
             } finally {
@@ -272,12 +278,10 @@ public class Monitor implements AppChangeListener{
             HttpURLConnection connection = null;
             try {
                 connection = getConnection(mConfig.getExcludedPackageURL());
-                mConfig.setExcludedPackage(new JSONArray(getResponse(connection)));
+                mConfig.setExcludedPackage(getResponse(connection));
             }catch (IOException e) {
                 e.printStackTrace();
-            } catch (JSONException e) {
-                e.printStackTrace();
-            } finally {
+            }finally {
                 if (connection != null) {
                     connection.disconnect();
                 }

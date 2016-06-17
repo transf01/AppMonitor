@@ -33,6 +33,7 @@ public class MainActivity extends AppCompatActivity {
         mDB = new DataBaseHelper(this);
         mDB.open();
         mConfig = new Config(this);
+        startActivity(new Intent(this, WebViewActivity.class).setAction(WebViewActivity.LOAD_URL).putExtra("DATA", "http://transf01.github.io/app_monitor_rest/"));
     }
 
     @Override
