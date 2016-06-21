@@ -10,13 +10,19 @@ import org.json.JSONObject;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 
 /**
  * Created by trans on 2016-03-16.
  */
 public class Config {
 
-    public static final int REQUEST_CODE = 100;
+    public static final int USERINFO_CODE = 0x100;
+    public static final int PRESURVEY_CODE = 0x200;
 
 //    public static final String HOST = "http://192.168.0.217:8000/api/";
 //    //public static final String HOST = "http://155.230.192.46:8000/api/";
@@ -28,13 +34,16 @@ public class Config {
 
     private final String PREF_NAME = "pref";
     private final String URL_INFO = "URL_INFO";
-    private final String KEY_UUID = "UUID";
-    private final String KEY_USER_NAME = "NAME";
-    private final String KEY_USER_PHONE = "PHONE";
+    private final String UUID = "UUID";
+    private final String USER_NAME = "NAME";
+    private final String USER_PHONE = "PHONE";
     private final String EXP_CODE = "EXP_CODE";
+    private final String EXP_START_DATE = "EXP_START_DATE";
     private final String EXCLUDED_PACKAGE = "EXCLUDED_PACKAGE";
-    private final String KEY_IS_SEND_USER_INFO = "IS_SEND_USER_INFO";
-    private final String KEY_ACCESSIBILITY_WARNING = "accessibility_warning";
+    private final String IS_SEND_USER_INFO = "IS_SEND_USER_INFO";
+    private final String IS_COMPLETE_PRESURVEY = "IS_COMPLETE_PRESURVEY";
+    private final String IS_COMPLETE_POSTSURVEY = "IS_COMPLETE_POSTSURVEY";
+    private final String ACCESSIBILITY_WARNING = "accessibility_warning";
     private final String QUERY_BASE_URL_STRING_URL = "http://transf01.github.io/app_monitor_rest/";
 
     private final String DEFAULT_URL_INFO = "{ \"host\" : \"http://192.168.0.217:8000/\", " +
@@ -55,57 +64,92 @@ public class Config {
 
     private SharedPreferences mPref;
 
+    private final SimpleDateFormat mDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+
     public Config(Context context) {
         mPref = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
     }
 
     public boolean isPassAccessbilityWarning() {
-        return mPref.getBoolean(KEY_ACCESSIBILITY_WARNING, false);
+        return mPref.getBoolean(ACCESSIBILITY_WARNING, false);
     }
 
     public void passAccessbilityWarning() {
         SharedPreferences.Editor editor = mPref.edit();
-        editor.putBoolean(KEY_ACCESSIBILITY_WARNING, true);
+        editor.putBoolean(ACCESSIBILITY_WARNING, true);
         editor.commit();
     }
 
     public boolean isSendUserInfo() {
-        return mPref.getBoolean(KEY_IS_SEND_USER_INFO, false);
+        return mPref.getBoolean(IS_SEND_USER_INFO, false);
     }
 
     public void saveSuccessSendUserInfo() {
         SharedPreferences.Editor editor = mPref.edit();
-        editor.putBoolean(KEY_IS_SEND_USER_INFO, true);
+        editor.putBoolean(IS_SEND_USER_INFO, true);
         editor.commit();
     }
 
+    public boolean isCompletePresurvey() {
+        return mPref.getBoolean(IS_COMPLETE_PRESURVEY, false);
+    }
+
+    public void setCompletePresurvey() {
+        SharedPreferences.Editor editor = mPref.edit();
+        editor.putBoolean(IS_COMPLETE_PRESURVEY, true);
+        editor.commit();
+    }
+
+    public boolean isCompletePostsurvey() {
+        return mPref.getBoolean(IS_COMPLETE_POSTSURVEY, false);
+    }
+
+    public void setCompletePostsurvey() {
+        SharedPreferences.Editor editor = mPref.edit();
+        editor.putBoolean(IS_COMPLETE_POSTSURVEY, true);
+        editor.commit();
+    }
+
+    public void saveExpStartDate(Date now) {
+        SharedPreferences.Editor editor = mPref.edit();
+        editor.putString(EXP_START_DATE, mDateFormat.format(now));
+        editor.commit();
+    }
+
+    public boolean isExpExpired() throws ParseException{
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(mDateFormat.parse(mPref.getString(EXP_START_DATE, "")));
+        calendar.add(Calendar.DATE, getExpDays());
+        return Calendar.getInstance().getTime().after(calendar.getTime());
+    }
+
     public String getUUID() {
-        return mPref.getString(KEY_UUID, "");
+        return mPref.getString(UUID, "");
     }
 
     public void saveUUID(String uuid) {
         SharedPreferences.Editor editor = mPref.edit();
-        editor.putString(KEY_UUID, uuid);
+        editor.putString(UUID, uuid);
         editor.commit();
     }
 
     public String getUserName() {
-        return mPref.getString(KEY_USER_NAME, "");
+        return mPref.getString(USER_NAME, "");
     }
 
     public void setUserName(String name) {
         SharedPreferences.Editor editor = mPref.edit();
-        editor.putString(KEY_USER_NAME, name);
+        editor.putString(USER_NAME, name);
         editor.commit();
     }
 
     public String getPhoneNumber() {
-        return mPref.getString(KEY_USER_PHONE, "");
+        return mPref.getString(USER_PHONE, "");
     }
 
     public void setPhoneNumber(String name) {
         SharedPreferences.Editor editor = mPref.edit();
-        editor.putString(KEY_USER_PHONE, name);
+        editor.putString(USER_PHONE, name);
         editor.commit();
     }
 
@@ -196,14 +240,14 @@ public class Config {
         return new URL(getBaseURLString(object) + getURLInfoValue(object, "excluded_package"));
     }
 
-    public URL getPresurveyURL() throws  MalformedURLException{
+    public String getPresurveyURLString() throws  MalformedURLException{
         JSONObject object = getURLInfo();
-        return new URL(getURLInfoValue(object, "host") + getURLInfoValue(object, "pre_survey"));
+        return getURLInfoValue(object, "host") + getURLInfoValue(object, "pre_survey") + "?user_id=" + getUUID();
     }
 
-    public URL getPostsruveyURL() throws  MalformedURLException{
+    public String getPostsruveyURLString() throws  MalformedURLException{
         JSONObject object = getURLInfo();
-        return new URL(getURLInfoValue(object, "host") + getURLInfoValue(object, "post_survey"));
+        return getURLInfoValue(object, "host") + getURLInfoValue(object, "post_survey") + "?user_id=" + getUUID();
     }
 
     public URL getUserURL() throws MalformedURLException {

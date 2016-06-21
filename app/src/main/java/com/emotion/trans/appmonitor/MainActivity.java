@@ -15,6 +15,7 @@ import android.view.MenuItem;
 import android.widget.ExpandableListView;
 import android.widget.TextView;
 
+import java.net.MalformedURLException;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -33,7 +34,6 @@ public class MainActivity extends AppCompatActivity {
         mDB = new DataBaseHelper(this);
         mDB.open();
         mConfig = new Config(this);
-        startActivity(new Intent(this, WebViewActivity.class).setAction(WebViewActivity.LOAD_URL).putExtra("DATA", "http://transf01.github.io/app_monitor_rest/"));
     }
 
     @Override
@@ -45,14 +45,31 @@ public class MainActivity extends AppCompatActivity {
         if (isNeedUserInfo()) {
             Intent i = new Intent(this, UserInfoActivity.class);
             i.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
-            startActivityForResult(i, Config.REQUEST_CODE);
+            startActivityForResult(i, Config.USERINFO_CODE);
+        } else{
+            startPresurveyIfNeed();
+        }
+    }
+
+    private void startPresurveyIfNeed() {
+        if (mConfig.isCompletePresurvey())
+            return;
+
+        try {
+            startActivityForResult(new Intent(this, WebViewActivity.class)
+                    .setAction(WebViewActivity.LOAD_URL)
+                    .putExtra("DATA", mConfig.getPresurveyURLString()), Config.PRESURVEY_CODE);
+        }catch (MalformedURLException e) {
+            e.printStackTrace();
         }
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode == RESULT_OK && requestCode == Config.REQUEST_CODE) {
+        if (resultCode == RESULT_OK && requestCode == Config.USERINFO_CODE) {
+            startPresurveyIfNeed();
+        }if (resultCode == RESULT_OK && requestCode == Config.PRESURVEY_CODE) {
             activeAccessibilityConfirmDialog();
         }
     }
