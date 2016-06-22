@@ -21,13 +21,13 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Calendar;
+import java.text.ParseException;
 import java.util.HashMap;
 
 /**
  * Created by trans on 2016-02-02.
  */
-public class Monitor implements AppChangeListener{
+public class Monitor{
 
     private static final int NONE = 0;
     private static final int SENDING = 1;
@@ -58,7 +58,6 @@ public class Monitor implements AppChangeListener{
     }
 
     private void addCommandHandler(String key, CommandHandler handler) {
-        handler.addChangeListener(this);
         mCommandHandlerMap.put(key, handler);
     }
 
@@ -76,13 +75,11 @@ public class Monitor implements AppChangeListener{
         }
     }
 
-    @Override
-    public void handleChangedAppInfo(AppInfo appInfo) {
+    private void handleChangedAppInfo(AppInfo appInfo) {
         mCurrentAppInfo = appInfo;
     }
 
-    @Override
-    public void handleChangedAppStartTime() {
+    private void handleChangedAppStartTime() {
         mRuntimeInfo = new RuntimeInfo();
     }
 
@@ -92,23 +89,56 @@ public class Monitor implements AppChangeListener{
         return (networkInfo != null && networkInfo.getType() == ConnectivityManager.TYPE_WIFI && networkInfo.isConnected());
     }
 
-    private void startGetURLInfo() {
-        Log.d("trans", "****************startGetURLInfo*******************");
-        GetURLInfo infoTask = new GetURLInfo();
-        infoTask.execute();
+    private void updateInfo() {
+        RestGet hostInfo = new RestGet(new RestGetHandler() {
+            @Override
+            public URL getURL() throws MalformedURLException {
+                return mConfig.getHostInfoURL();
+            }
+
+            @Override
+            public void handle(String response) {
+                Log.d("trans", response);
+                mConfig.setURLInfo(response);
+            }
+        });
+
+        RestGet excludedPackageInfo = new RestGet(new RestGetHandler() {
+            @Override
+            public URL getURL() throws MalformedURLException {
+                return mConfig.getExcludedPackageURL();
+            }
+
+            @Override
+            public void handle(String response) {
+                Log.d("trans", response);
+                mConfig.setExcludedPackage(response);
+            }
+        });
+
+        RestGet expInfo = new RestGet(new RestGetHandler() {
+            @Override
+            public URL getURL() throws MalformedURLException {
+                return mConfig.getExpInfoURL();
+            }
+
+            @Override
+            public void handle(String response) {
+                Log.d("trans", response);
+                mConfig.setExpInfo(response);
+            }
+        });
+
+        RestGetTask restGetTask = new RestGetTask();
+        restGetTask.execute(hostInfo, excludedPackageInfo, expInfo);
     }
 
-    @Override
-    public void handleAppStop() {
+    private void handleAppStop() {
         if (mInfo != null) {
             mInfo.save(mRuntimeInfo.stop());
             mInfo = null;
             if(isWiFiConnected()) {
-                startGetURLInfo();
-
-                GetExcludedPackage excludedPackage = new GetExcludedPackage();
-                excludedPackage.execute();
-
+                updateInfo();
                 mContext.startService(new Intent(mContext, MonitoringService.class).setAction(MonitoringService.SEND_DATA));
             }
         }
@@ -131,68 +161,56 @@ public class Monitor implements AppChangeListener{
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
     private class ScreenOffCommandHandler implements CommandHandler{
-        private AppChangeListener mListener;
 
         @Override
         public void handle(Intent intent, Handler handler, Runnable runnable) {
             handler.removeCallbacks(runnable);
-            mListener.handleAppStop();
-        }
-
-        @Override
-        public void addChangeListener(AppChangeListener listener) {
-            mListener = listener;
+            handleAppStop();
         }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
     private class ScreenOnCommandHandler implements CommandHandler {
-        private AppChangeListener mListener;
 
         @Override
         public void handle(Intent intent, Handler handler, Runnable runnable) {
             handler.removeCallbacks(runnable);
             handler.postDelayed(runnable, MONITORING_JUDGE_TIME);
-            mListener.handleChangedAppStartTime();
+            handleChangedAppStartTime();
         }
-
-        @Override
-        public void addChangeListener(AppChangeListener listener) {
-            mListener = listener;
-        }
-
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
-    private class WindowChangeCommandHandler implements CommandHandler{
+    private void startPostsurvey() {
+        try {
+            mContext.startActivity(new Intent(mContext, WebViewActivity.class)
+                    .setAction(WebViewActivity.LOAD_URL).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_NO_HISTORY)
+                    .putExtra("DATA", mConfig.getPostsurveyURLString()));
+        }catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+    }
 
-        AppChangeListener mListener;
+    private class WindowChangeCommandHandler implements CommandHandler{
         AppInfo mPreviousAppInfo = null;
 
         public void handle(Intent intent, Handler handler, Runnable runnable) {
+
+            if (mConfig.isExpExpired()) {
+                Log.d("trans", "------ expired -----");
+                return;
+            }
 
             AppInfo appInfo = new AppInfo(intent.getStringExtra("AppName"), intent.getStringExtra("PackageName"), mConfig);
 
             if (appInfo.isDifferent(mPreviousAppInfo)) {
                 handler.removeCallbacks(runnable);
                 handler.postDelayed(runnable, MONITORING_JUDGE_TIME);
-                notifyAppChangeInfo(appInfo);
+                handleAppStop();
+                handleChangedAppStartTime();
+                handleChangedAppInfo(appInfo);
                 mPreviousAppInfo = appInfo;
             }
-        }
-
-        @Override
-        public void addChangeListener(AppChangeListener listener) {
-            mListener = listener;
-        }
-
-        private void notifyAppChangeInfo(AppInfo appInfo) {
-            if (mListener == null)
-                return;
-
-            mListener.handleAppStop();
-            mListener.handleChangedAppStartTime();
-            mListener.handleChangedAppInfo(appInfo);
         }
     }
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -219,77 +237,20 @@ public class Monitor implements AppChangeListener{
                  }
              }
         }
+    }
 
+   ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    private class RestGetTask extends AsyncTask<RestGet, Void, Void> {
         @Override
-        public void addChangeListener(AppChangeListener listener) {
-
-        }
-    }
-
-    private HttpURLConnection getConnection(URL url) throws IOException {
-        HttpURLConnection conn = (HttpURLConnection)url.openConnection();
-        conn.setRequestMethod("GET");
-        conn.setRequestProperty("Cache-Control", "no-cache");
-        conn.setRequestProperty("Content-Type", "application/json");
-        conn.setRequestProperty("Accept", "application/json");
-        conn.setDoInput(true);
-        return conn;
-    }
-
-    private String getResponse(HttpURLConnection conn) throws IOException {
-        if (HttpURLConnection.HTTP_OK == conn.getResponseCode()) {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-            StringBuffer response = new StringBuffer();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                response.append(line);
-            }
-            reader.close();
-            return response.toString();
-        }
-        return null;
-    }
-
-        //////////////////////////////////////////////////////////////////////////////////////////////
-    private class GetURLInfo extends AsyncTask<Void, Void, Void> {
-
-        @Override
-        protected Void doInBackground(Void... params) {
-            HttpURLConnection connection = null;
-            try {
-                connection = getConnection(mConfig.getQueryBaseURLStringURL());
-                mConfig.setURLInfo(getResponse(connection));
-            } catch(IOException e) {
-                e.printStackTrace();
-            } finally {
-                if (connection != null) {
-                    connection.disconnect();
-                }
+        protected Void doInBackground(RestGet... params) {
+            for (int i = 0; i < params.length; i++) {
+                params[i].handle();
             }
             return null;
         }
     }
-    ///////////////////////////////////////////////////////////////////////////////////////////////
 
-    //////////////////////////////////////////////////////////////////////////////////////////////
-    private class GetExcludedPackage extends AsyncTask<Void, Void, Void> {
-        @Override
-        protected Void doInBackground(Void... params) {
-            HttpURLConnection connection = null;
-            try {
-                connection = getConnection(mConfig.getExcludedPackageURL());
-                mConfig.setExcludedPackage(getResponse(connection));
-            }catch (IOException e) {
-                e.printStackTrace();
-            }finally {
-                if (connection != null) {
-                    connection.disconnect();
-                }
-            }
-            return null;
-        }
-
-    }
     ///////////////////////////////////////////////////////////////////////////////////////////////
     private class GetAppHistory extends AsyncTask<Cursor, Void, Void> {
 

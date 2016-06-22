@@ -38,6 +38,7 @@ public class UserInfo {
             object.put("name", mConfig.getUserName());
             object.put("cellphone", mConfig.getPhoneNumber());
             object.put("experiment_code", mConfig.getExpCode());
+            object.put("experiment_start_date", mConfig.getExpStartDate());
         }catch (JSONException e) {
             e.printStackTrace();
         }

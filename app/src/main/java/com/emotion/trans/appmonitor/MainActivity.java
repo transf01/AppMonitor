@@ -34,6 +34,8 @@ public class MainActivity extends AppCompatActivity {
         mDB = new DataBaseHelper(this);
         mDB.open();
         mConfig = new Config(this);
+        mConfig.saveExpStartDateIfNeed();
+        mConfig.testSetExpStartDate("2016-06-15");
     }
 
     @Override
@@ -57,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
 
         try {
             startActivityForResult(new Intent(this, WebViewActivity.class)
-                    .setAction(WebViewActivity.LOAD_URL)
+                    .setAction(WebViewActivity.LOAD_URL).setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
                     .putExtra("DATA", mConfig.getPresurveyURLString()), Config.PRESURVEY_CODE);
         }catch (MalformedURLException e) {
             e.printStackTrace();

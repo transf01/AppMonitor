@@ -51,6 +51,8 @@ public class WebViewActivity extends AppCompatActivity {
                 case KeyEvent.KEYCODE_BACK:
                     if (mWebView.canGoBack()) {
                         mWebView.goBack();
+                    } else {
+                        finish();
                     }
                     return true;
             }
@@ -62,12 +64,25 @@ public class WebViewActivity extends AppCompatActivity {
     private class AndroidBridge {
 
         @JavascriptInterface
-        public void confirm() {
+        public void confirmPresurvey() {
             mConfig.setCompletePresurvey();
             mHandler.post(new Runnable() {
                 @Override
                 public void run() {
+                    Log.d("trans", "confirm pre");
                     setResult(RESULT_OK);
+                    finish();
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void confirmPostsurvey() {
+            mConfig.setCompletePostsurvey();
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    Log.d("trans", "confirm post");
                     finish();
                 }
             });
