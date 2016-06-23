@@ -14,6 +14,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.ExpandableListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.net.MalformedURLException;
 import java.util.Calendar;
@@ -98,13 +99,47 @@ public class MainActivity extends AppCompatActivity {
             case R.id.information:
                 activeInformationDialog();
                  return true;
+            case R.id.presurvey:
+                presurvey();
+                return true;
+            case R.id.postsurvey:
+                postsurvey();
+                return true;
+
             case R.id.debug_print:
-//                clear(mDB);
-                testAdd(mDB);
-                debugAllPrint(mDB);
+////                clear(mDB);
+//                testAdd(mDB);
+//                debugAllPrint(mDB);
                  return true;
         }
         return false;
+    }
+
+    private void displayAlreadyAnswer() {
+        Toast.makeText(this, R.string.already_answer, Toast.LENGTH_SHORT).show();
+    }
+
+    private void presurvey() {
+        if (mConfig.isCompletePresurvey()) {
+            displayAlreadyAnswer();
+            return;
+        }
+
+        mConfig.startPresurvey();
+    }
+
+    private void postsurvey() {
+        if (!mConfig.isExpExpired()) {
+            Toast.makeText(this, R.string.leave_expire, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (mConfig.isCompletePostsurvey()) {
+            displayAlreadyAnswer();
+            return;
+        }
+
+        mConfig.startPostsurvey();
     }
 
     private boolean isNeedUserInfo() {
@@ -196,7 +231,6 @@ public class MainActivity extends AppCompatActivity {
         view.setGravity(Gravity.CENTER);
         dialog.show();
     }
-
 }
 
 

@@ -8,5 +8,5 @@ import java.net.URL;
  */
 public interface RestGetHandler {
     public URL getURL() throws MalformedURLException;
-    public void handle(String response);
+    public void handleResponse(String response);
 }

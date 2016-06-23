@@ -31,19 +31,12 @@ public class AppInfo {
         return mPackageName;
     }
 
-    private boolean isHomeApp(Context context) {
-        Intent intent = new Intent(Intent.ACTION_MAIN);
-        intent.addCategory(Intent.CATEGORY_HOME);
-        ResolveInfo res = context.getPackageManager().resolveActivity(intent, 0);
-        if (res.activityInfo == null)
-            return false;
-
-        return mPackageName.equals(res.activityInfo.packageName);
-
+    public boolean isHomeApp() {
+        return mConfig.isHomeApp(mPackageName);
     }
 
-    public boolean isCheckable(Context context) {
-        return !(isHomeApp(context) || mConfig.isExcludedPackage(mPackageName));
+    public boolean isCheckable() {
+        return !(isHomeApp() || mConfig.isExcludedPackage(mPackageName));
     }
 
     private boolean isValid() {

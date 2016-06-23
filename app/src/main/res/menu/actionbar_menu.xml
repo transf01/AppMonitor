@@ -6,6 +6,11 @@ xmlns:AppMonitor="http://schemas.android.com/apk/res-auto">
     android:title="@string/accessibility_setting"/>
 <item android:id="@+id/information"
     android:title="@string/information"/>
-<item android:id="@+id/debug_print"
+    <item android:id="@+id/presurvey"
+        android:title="@string/presurvey"/>
+    <item android:id="@+id/postsurvey"
+        android:title="@string/postsurvey"/>
+    <item android:id="@+id/debug_print"
     android:title="@string/debug_print"/>
+
 </menu>

@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
-import java.net.URL;
 
 /**
  * Created by trans on 2016-06-22.
@@ -46,7 +45,7 @@ public class RestGet {
         try {
             connection = getConnection();
             if (mHandler != null) {
-                mHandler.handle(getResponse(connection));
+                mHandler.handleResponse(getResponse(connection));
             }
         } catch(IOException e) {
             e.printStackTrace();

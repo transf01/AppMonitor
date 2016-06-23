@@ -10,5 +10,5 @@ import android.os.Handler;
 public interface CommandHandler {
     final int MONITORING_JUDGE_TIME = 10000;
 
-    public void handle(Intent intent, Handler handler, Runnable runnable);
+    public void handle(Intent intent, Handler handler, Runnable startMonitoring);
 }

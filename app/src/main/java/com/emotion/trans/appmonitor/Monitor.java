@@ -21,7 +21,6 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.text.ParseException;
 import java.util.HashMap;
 
 /**
@@ -35,7 +34,7 @@ public class Monitor{
 
     private Context mContext;
     private Handler mHandler;
-    private Runnable mRunnable ;
+    private Runnable mMonitoringRunnable;
     private HashMap<String, CommandHandler> mCommandHandlerMap = new HashMap<>();
     private AppInfo mCurrentAppInfo;
     private RuntimeInfo mRuntimeInfo;
@@ -46,7 +45,7 @@ public class Monitor{
     public Monitor(Context context, DataBaseHelper db) {
         mContext = context;
         mHandler = new Handler();
-        mRunnable = new Runnable() {
+        mMonitoringRunnable = new Runnable() {
             @Override
             public void run() {
                 startMonitoring();
@@ -69,7 +68,7 @@ public class Monitor{
     }
 
     private void startMonitoring(){
-        if (mCurrentAppInfo != null && mCurrentAppInfo.isCheckable(mContext)) {
+        if (mCurrentAppInfo != null && mCurrentAppInfo.isCheckable()) {
             mInfo = new MonitorInfo(mCurrentAppInfo, mdb);
             Log.d("trans", "### start : " + mInfo.toString());
         }
@@ -77,19 +76,19 @@ public class Monitor{
 
     private void handleChangedAppInfo(AppInfo appInfo) {
         mCurrentAppInfo = appInfo;
+        if (mConfig.isExpExpired() && mCurrentAppInfo.isHomeApp()) {
+            Log.d("trans", "----------------expired at home---------------");
+            if (!mConfig.isCompletePostsurvey()) {
+                mContext.startActivity(new Intent(mContext, TranslucentActivity.class).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_HISTORY));
+            }
+        }
     }
 
     private void handleChangedAppStartTime() {
         mRuntimeInfo = new RuntimeInfo();
     }
 
-    private boolean isWiFiConnected() {
-        ConnectivityManager connMgr = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
-        return (networkInfo != null && networkInfo.getType() == ConnectivityManager.TYPE_WIFI && networkInfo.isConnected());
-    }
-
-    private void updateInfo() {
+    private void updateInfo(RestGetTaskPostHandler handler) {
         RestGet hostInfo = new RestGet(new RestGetHandler() {
             @Override
             public URL getURL() throws MalformedURLException {
@@ -97,7 +96,7 @@ public class Monitor{
             }
 
             @Override
-            public void handle(String response) {
+            public void handleResponse(String response) {
                 Log.d("trans", response);
                 mConfig.setURLInfo(response);
             }
@@ -110,7 +109,7 @@ public class Monitor{
             }
 
             @Override
-            public void handle(String response) {
+            public void handleResponse(String response) {
                 Log.d("trans", response);
                 mConfig.setExcludedPackage(response);
             }
@@ -123,48 +122,60 @@ public class Monitor{
             }
 
             @Override
-            public void handle(String response) {
+            public void handleResponse(String response) {
                 Log.d("trans", response);
                 mConfig.setExpInfo(response);
             }
         });
 
-        RestGetTask restGetTask = new RestGetTask();
+        RestGetTask restGetTask = new RestGetTask(handler);
         restGetTask.execute(hostInfo, excludedPackageInfo, expInfo);
     }
 
+    private void sendSavedHistory() {
+        if (mConfig.isWiFiConnected()) {
+            updateInfo(new RestGetTaskPostHandler() {
+                @Override
+                public void handlePostProcess() {
+                    mContext.startService(new Intent(mContext, MonitoringService.class).setAction(MonitoringService.SEND_DATA));
+                }
+            });
+        }
+    }
+
     private void handleAppStop() {
+        if (mConfig.isExpExpired()) {
+            return;
+        }
+
         if (mInfo != null) {
             mInfo.save(mRuntimeInfo.stop());
             mInfo = null;
-            if(isWiFiConnected()) {
-                updateInfo();
-                mContext.startService(new Intent(mContext, MonitoringService.class).setAction(MonitoringService.SEND_DATA));
-            }
+            sendSavedHistory();
         }
     }
 
     public void handleCommand(Intent intent) {
-
         if (intent == null)   return;
         String action = intent.getAction();
 
         CommandHandler handler = mCommandHandlerMap.get(action);
         if (handler != null) {
-            handler.handle(intent, mHandler, mRunnable);
+            handler.handle(intent, mHandler, mMonitoringRunnable);
         }
     }
 
     public void clearHandler() {
-        mHandler.removeCallbacks(mRunnable);
+        mHandler.removeCallbacks(mMonitoringRunnable);
     }
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
     private class ScreenOffCommandHandler implements CommandHandler{
 
         @Override
-        public void handle(Intent intent, Handler handler, Runnable runnable) {
-            handler.removeCallbacks(runnable);
+        public void handle(Intent intent, Handler handler, Runnable startMonitoring) {
+            handler.removeCallbacks(startMonitoring);
             handleAppStop();
         }
     }
@@ -173,39 +184,24 @@ public class Monitor{
     private class ScreenOnCommandHandler implements CommandHandler {
 
         @Override
-        public void handle(Intent intent, Handler handler, Runnable runnable) {
-            handler.removeCallbacks(runnable);
-            handler.postDelayed(runnable, MONITORING_JUDGE_TIME);
+        public void handle(Intent intent, Handler handler, Runnable startMonitoring) {
+            handler.removeCallbacks(startMonitoring);
+            handler.postDelayed(startMonitoring, MONITORING_JUDGE_TIME);
             handleChangedAppStartTime();
         }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
-    private void startPostsurvey() {
-        try {
-            mContext.startActivity(new Intent(mContext, WebViewActivity.class)
-                    .setAction(WebViewActivity.LOAD_URL).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_NO_HISTORY)
-                    .putExtra("DATA", mConfig.getPostsurveyURLString()));
-        }catch (MalformedURLException e) {
-            e.printStackTrace();
-        }
-    }
-
     private class WindowChangeCommandHandler implements CommandHandler{
         AppInfo mPreviousAppInfo = null;
 
-        public void handle(Intent intent, Handler handler, Runnable runnable) {
-
-            if (mConfig.isExpExpired()) {
-                Log.d("trans", "------ expired -----");
-                return;
-            }
+        public void handle(Intent intent, Handler handler, Runnable startMonitoring) {
 
             AppInfo appInfo = new AppInfo(intent.getStringExtra("AppName"), intent.getStringExtra("PackageName"), mConfig);
 
             if (appInfo.isDifferent(mPreviousAppInfo)) {
-                handler.removeCallbacks(runnable);
-                handler.postDelayed(runnable, MONITORING_JUDGE_TIME);
+                handler.removeCallbacks(startMonitoring);
+                handler.postDelayed(startMonitoring, MONITORING_JUDGE_TIME);
                 handleAppStop();
                 handleChangedAppStartTime();
                 handleChangedAppInfo(appInfo);
@@ -216,38 +212,67 @@ public class Monitor{
     ///////////////////////////////////////////////////////////////////////////////////////////////
     private class SendHandler implements CommandHandler {
 
-        @Override
-        public void handle(Intent intent, Handler handler, Runnable runnable) {
-             if (!mConfig.isSendUserInfo()) {
-                 new UserInfo(mContext, mConfig).send();
-             } else {
-                 Cursor cursor = mdb.getSendData();
-                 if (cursor.getCount() > 0) {
-                     PostAppHistory post = new PostAppHistory();
-                     post.execute(cursor);
-                 } else {
-                     cursor.close();
-                     cursor = mdb.getAmbiguousSendData();
-                     if (cursor.getCount() > 0) {
-                         GetAppHistory get = new GetAppHistory();
-                         get.execute(cursor);
-                     }else {
-                         cursor.close();
-                     }
-                 }
-             }
+        private void handleAmbiguousHistory(){
+            Cursor cursor = mdb.getAmbiguousSendData();
+            if (cursor.getCount() > 0) {
+                GetAppHistory get = new GetAppHistory();
+                get.execute(cursor);
+            }else {
+                cursor.close();
+            }
         }
+
+        private void sendData() {
+            if (!mConfig.isSendUserInfo()) {
+                new UserInfo(mContext, mConfig).send();
+            } else {
+                Cursor cursor = mdb.getSendData();
+                if (cursor.getCount() > 0) {
+                    PostAppHistory post = new PostAppHistory();
+                    post.execute(cursor);
+                } else {
+                    cursor.close();
+                    handleAmbiguousHistory();
+                }
+            }
+        }
+
+        @Override
+        public void handle(Intent intent, Handler handler, Runnable startMonitoring) {
+            if(mConfig.isWiFiConnected()) {
+                sendData();
+            }
+        }
+    }
+
+    private interface RestGetTaskPostHandler {
+        public void handlePostProcess() ;
     }
 
    ///////////////////////////////////////////////////////////////////////////////////////////////
 
     private class RestGetTask extends AsyncTask<RestGet, Void, Void> {
+
+        private RestGetTaskPostHandler mPostHandler;
+
+        public RestGetTask(RestGetTaskPostHandler postHandler) {
+            mPostHandler = postHandler;
+        }
+
         @Override
         protected Void doInBackground(RestGet... params) {
             for (int i = 0; i < params.length; i++) {
                 params[i].handle();
             }
             return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+            if (mPostHandler != null) {
+                mPostHandler.handlePostProcess();
+            }
         }
     }
 
@@ -397,11 +422,8 @@ public class Monitor{
                     sendRemainData(mContext);
             }
         }
-
         private void sendRemainData(Context context) {
-            Intent i = new Intent(mContext, MonitoringService.class);
-            i.setAction(MonitoringService.SEND_DATA);
-            mContext.startService(i);
+            context.startService(new Intent(context, MonitoringService.class).setAction(MonitoringService.SEND_DATA));
         }
     }
 

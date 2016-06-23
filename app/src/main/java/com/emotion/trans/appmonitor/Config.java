@@ -1,7 +1,11 @@
 package com.emotion.trans.appmonitor;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ResolveInfo;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.util.Log;
 
 import org.json.JSONArray;
@@ -70,11 +74,13 @@ public class Config {
     private final int DEFAULT_PERIOD=7;
 
     private SharedPreferences mPref;
+    private Context mContext;
 
     private final SimpleDateFormat mDateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
     public Config(Context context) {
         mPref = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        mContext = context;
     }
 
     public boolean isPassAccessbilityWarning() {
@@ -312,6 +318,17 @@ public class Config {
         return new URL(HOST_INFO_URL);
     }
 
+    public boolean isHomeApp(String packageName) {
+        Intent intent = new Intent(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_HOME);
+        ResolveInfo res = mContext.getPackageManager().resolveActivity(intent, 0);
+        if (res.activityInfo == null)
+            return false;
+
+        return packageName.equals(res.activityInfo.packageName);
+
+    }
+
     public boolean isExcludedPackage(CharSequence packageName) {
         if (packageName == null || packageName.toString().isEmpty()) {
             return true;
@@ -328,5 +345,39 @@ public class Config {
             e.printStackTrace();
         }
         return false;
+    }
+
+    public boolean isWiFiConnected() {
+        ConnectivityManager connMgr = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
+        return (networkInfo != null && networkInfo.getType() == ConnectivityManager.TYPE_WIFI && networkInfo.isConnected());
+    }
+
+    public boolean isOnline() {
+        ConnectivityManager cm = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo netInfo = cm.getActiveNetworkInfo();
+        return netInfo != null && netInfo.isConnectedOrConnecting();
+    }
+
+    private void startSurvey(String url) {
+        mContext.startActivity(new Intent(mContext, WebViewActivity.class)
+                .setAction(WebViewActivity.LOAD_URL)
+                .putExtra("DATA", url));
+    }
+
+    public void startPresurvey() {
+        try {
+           startSurvey(getPostsurveyURLString());
+        }catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void startPostsurvey() {
+        try {
+            startSurvey( getPostsurveyURLString());
+        }catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
     }
 }
