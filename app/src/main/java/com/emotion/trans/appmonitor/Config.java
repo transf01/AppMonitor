@@ -1,5 +1,6 @@
 package com.emotion.trans.appmonitor;
 
+import android.accessibilityservice.AccessibilityServiceInfo;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -7,6 +8,8 @@ import android.content.pm.ResolveInfo;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.util.Log;
+import android.view.accessibility.AccessibilityEvent;
+import android.view.accessibility.AccessibilityManager;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -17,6 +20,7 @@ import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.List;
 
 /**
  * Created by trans on 2016-03-16.
@@ -46,7 +50,6 @@ public class Config {
     private final String IS_SEND_USER_INFO = "IS_SEND_USER_INFO";
     private final String IS_COMPLETE_PRESURVEY = "IS_COMPLETE_PRESURVEY";
     private final String IS_COMPLETE_POSTSURVEY = "IS_COMPLETE_POSTSURVEY";
-    private final String ACCESSIBILITY_WARNING = "accessibility_warning";
     private final String HOST_INFO_URL = "http://transf01.github.io/app_monitor_rest/";
 
     private final String DEFAULT_URL_INFO = "{ \"host\" : \"http://192.168.0.217:8000/\", " +
@@ -75,22 +78,14 @@ public class Config {
 
     private SharedPreferences mPref;
     private Context mContext;
+    private AccessibilityManager mAccessibilityManager;
 
     private final SimpleDateFormat mDateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
     public Config(Context context) {
         mPref = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         mContext = context;
-    }
-
-    public boolean isPassAccessbilityWarning() {
-        return mPref.getBoolean(ACCESSIBILITY_WARNING, false);
-    }
-
-    public void passAccessbilityWarning() {
-        SharedPreferences.Editor editor = mPref.edit();
-        editor.putBoolean(ACCESSIBILITY_WARNING, true);
-        editor.commit();
+        mAccessibilityManager = (AccessibilityManager)mContext.getSystemService(Context.ACCESSIBILITY_SERVICE);
     }
 
     public boolean isSendUserInfo() {
@@ -318,6 +313,12 @@ public class Config {
         return new URL(HOST_INFO_URL);
     }
 
+    public String getUsagePatternURLString() throws MalformedURLException {
+        JSONObject object = getHostInfo();
+        Log.d("trans", "**************************"+object.toString());
+        return getURLInfoValue(object, "host") +"graph/?user_id=" + getUUID();
+    }
+
     public boolean isHomeApp(String packageName) {
         Intent intent = new Intent(Intent.ACTION_MAIN);
         intent.addCategory(Intent.CATEGORY_HOME);
@@ -379,5 +380,15 @@ public class Config {
         }catch (MalformedURLException e) {
             e.printStackTrace();
         }
+    }
+
+    public boolean isAccessibilityEnabled() {
+        List<AccessibilityServiceInfo> infos = mAccessibilityManager.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_GENERIC);
+        for (AccessibilityServiceInfo info : infos) {
+            if (info.eventTypes == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+                return true;
+            }
+        }
+        return false;
     }
 }

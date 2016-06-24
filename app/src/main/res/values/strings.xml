@@ -21,4 +21,5 @@
     <string name="postsurvey">사후설문</string>
     <string name="already_answer">이미 응답하였습니다</string>
     <string name="leave_expire">아직 실험이 완료되지 않았습니다</string>
+    <string name="usage_pattern">사용 패턴</string>
 </resources>
