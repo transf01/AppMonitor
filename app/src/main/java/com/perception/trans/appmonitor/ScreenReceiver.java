@@ -1,9 +1,8 @@
-package com.emotion.trans.appmonitor;
+package com.perception.trans.appmonitor;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
 
 public class ScreenReceiver extends BroadcastReceiver {
 
@@ -18,7 +17,7 @@ public class ScreenReceiver extends BroadcastReceiver {
 
     private void sendIntent(Context context, String action){
         Intent intent = new Intent(action);
-        intent.setPackage("com.emotion.trans.appmonitor");
+        intent.setPackage("com.perception.trans.appmonitor");
         context.startService(intent);
     }
 }

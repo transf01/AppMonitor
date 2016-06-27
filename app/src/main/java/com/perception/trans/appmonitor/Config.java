@@ -1,4 +1,4 @@
-package com.emotion.trans.appmonitor;
+package com.perception.trans.appmonitor;
 
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.content.Context;

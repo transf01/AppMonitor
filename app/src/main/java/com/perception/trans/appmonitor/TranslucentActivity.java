@@ -1,14 +1,10 @@
-package com.emotion.trans.appmonitor;
+package com.perception.trans.appmonitor;
 
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
-import android.content.Intent;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-
-import java.net.MalformedURLException;
 
 public class TranslucentActivity extends Activity {
 

@@ -1,4 +1,4 @@
-package com.emotion.trans.appmonitor;
+package com.perception.trans.appmonitor;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -6,9 +6,6 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
-
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
 /**
  * Created by trans on 2016-02-02.

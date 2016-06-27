@@ -1,14 +1,8 @@
-package com.emotion.trans.appmonitor;
+package com.perception.trans.appmonitor;
 
-import android.accessibilityservice.AccessibilityServiceInfo;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
-import android.view.accessibility.AccessibilityEvent;
-import android.view.accessibility.AccessibilityManager;
-
-import java.util.List;
 
 public class BootCompletedReceiver extends BroadcastReceiver {
     public BootCompletedReceiver() {

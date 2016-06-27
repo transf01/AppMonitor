@@ -1,11 +1,6 @@
-package com.emotion.trans.appmonitor;
+package com.perception.trans.appmonitor;
 
-import android.content.Context;
-import android.content.Intent;
-import android.content.pm.ResolveInfo;
 import android.util.Log;
-
-import java.util.Date;
 
 /**
  * Created by trans on 2016-02-02.

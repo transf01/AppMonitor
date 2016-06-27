@@ -1,8 +1,4 @@
-package com.emotion.trans.appmonitor;
-
-import android.content.Context;
-import android.content.Intent;
-import android.content.pm.ResolveInfo;
+package com.perception.trans.appmonitor;
 
 /**
  * Created by trans on 2016-02-02.
