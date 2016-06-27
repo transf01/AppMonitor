@@ -53,7 +53,7 @@ public class Config {
     private final String IS_COMPLETE_POSTSURVEY = "IS_COMPLETE_POSTSURVEY";
     private final String HOST_INFO_URL = "http://transf01.github.io/app_monitor_rest/";
 
-    private final String DEFAULT_URL_INFO = "{ \"host\" : \"http://192.168.0.217:8000/\", " +
+    private final String DEFAULT_URL_INFO = "{ \"host\" : \"http://155.230.192.46:8001/\", " +
             "\"api_base\" : \"api/\", " +
             "\"history\" : \"history/\", " +
             "\"user_history\" : \"%s/date/%s/time/%s/\", " +
