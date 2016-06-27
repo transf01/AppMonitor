@@ -133,7 +133,7 @@ public class MainActivity extends AppCompatActivity {
                 startUsagePattern();
                 return true;
             case R.id.information:
-                activeInformationDialog();
+                activieInformation();
                  return true;
             case R.id.presurvey:
                 presurvey();
@@ -141,12 +141,6 @@ public class MainActivity extends AppCompatActivity {
             case R.id.postsurvey:
                 postsurvey();
                 return true;
-
-            case R.id.debug_print:
-////                clear(mDB);
-                testAdd(mDB);
-//                debugAllPrint(mDB);
-                 return true;
         }
         return false;
     }
@@ -176,6 +170,10 @@ public class MainActivity extends AppCompatActivity {
         }
 
         mConfig.startPostsurvey();
+    }
+
+    private void activieInformation() {
+        mConfig.startInformation();
     }
 
     private boolean isNeedUserInfo() {
@@ -253,20 +251,6 @@ public class MainActivity extends AppCompatActivity {
         alert.show();
     }
 
-    private void activeInformationDialog() {
-        AlertDialog.Builder alert = new AlertDialog.Builder(this);
-        alert.setPositiveButton(R.string.confirm, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();     //닫기
-            }
-        });
-        alert.setMessage(R.string.app_information);
-        AlertDialog dialog = alert.show();
-        TextView view = (TextView)dialog.findViewById(android.R.id.message);
-        view.setGravity(Gravity.CENTER);
-        dialog.show();
-    }
 }
 
 

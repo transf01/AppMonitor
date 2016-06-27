@@ -60,7 +60,8 @@ public class Config {
             "\"excluded_package\": \"excluded_package/\", " +
             "\"pre_survey\" : \"survey/1/\", " +
             "\"post_survey\" : \"survey/2/\", " +
-            "\"exp_info\" : \"exp_info/2016_summer\" }";
+            "\"exp_info\" : \"exp_info/2016_summer\", " +
+            "\"privacy\" : \"privacy/\" }";
 
     private final String DEFAULT_EXCLUDE_PACKAGE = "[{\"package_name\":\"com.android.settings\"}," +
             "{\"package_name\":\"com.android.keyguard\"}," +
@@ -299,6 +300,11 @@ public class Config {
         return getURLInfoValue(object, "host") + getURLInfoValue(object, "post_survey") + "?user_id=" + getUUID();
     }
 
+    public String getPrivacyURLString() throws MalformedURLException {
+        JSONObject object = getHostInfo();
+        return getURLInfoValue(object, "host") + getURLInfoValue(object, "privacy");
+    }
+
     public URL getUserURL() throws MalformedURLException {
         JSONObject object = getHostInfo();
         return new URL(getBaseURLString(object) + getURLInfoValue(object, "user"));
@@ -360,7 +366,7 @@ public class Config {
         return netInfo != null && netInfo.isConnectedOrConnecting();
     }
 
-    private void startSurvey(String url) {
+    private void startWebView(String url) {
         mContext.startActivity(new Intent(mContext, WebViewActivity.class)
                 .setAction(WebViewActivity.LOAD_URL)
                 .putExtra("DATA", url));
@@ -368,7 +374,7 @@ public class Config {
 
     public void startPresurvey() {
         try {
-           startSurvey(getPostsurveyURLString());
+           startWebView(getPostsurveyURLString());
         }catch (MalformedURLException e) {
             e.printStackTrace();
         }
@@ -376,7 +382,15 @@ public class Config {
 
     public void startPostsurvey() {
         try {
-            startSurvey( getPostsurveyURLString());
+            startWebView( getPostsurveyURLString());
+        }catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void startInformation() {
+        try {
+            startWebView( getPrivacyURLString());
         }catch (MalformedURLException e) {
             e.printStackTrace();
         }
