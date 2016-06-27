@@ -1,6 +1,8 @@
 package com.emotion.trans.appmonitor;
 
+import android.accessibilityservice.AccessibilityServiceInfo;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
@@ -12,6 +14,7 @@ import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.accessibility.AccessibilityManager;
 import android.widget.ExpandableListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -20,11 +23,13 @@ import java.net.MalformedURLException;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
     private DataBaseHelper mDB;
     private Config mConfig;
+    public static final String CHECK_ACCESSIBILITY = "CHECK_ACCESSIBILITY";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,22 +41,33 @@ public class MainActivity extends AppCompatActivity {
         mDB.open();
         mConfig = new Config(this);
         mConfig.saveExpStartDateIfNeed();
-        mConfig.testSetExpStartDate("2016-06-15");
+        //mConfig.testSetExpStartDate("2016-06-21");
     }
 
     @Override
     protected void onStart() {
         super.onStart();
+        Log.d("trans", "onStart");
+
+        Intent i = getIntent();
+        if (i != null && CHECK_ACCESSIBILITY.equals(i.getAction())) {
+            activeAccessibilityConfirmDialog();
+        }
+
         StatCursorTreeAdapter adapter = new StatCursorTreeAdapter(mDB.getDates(), this, mDB);
         ExpandableListView list = (ExpandableListView)findViewById(R.id.stat_list);
         list.setAdapter(adapter);
         if (isNeedUserInfo()) {
-            Intent i = new Intent(this, UserInfoActivity.class);
-            i.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
-            startActivityForResult(i, Config.USERINFO_CODE);
+            startActivityForResult(new Intent(this, UserInfoActivity.class).setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY), Config.USERINFO_CODE);
         } else{
             startPresurveyIfNeed();
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d("trans", "onResume");
     }
 
     private void startPresurveyIfNeed() {
@@ -67,6 +83,16 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void startUsagePattern() {
+        try {
+            startActivity(new Intent(this, WebViewActivity.class)
+                    .setAction(WebViewActivity.LOAD_URL).setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
+                    .putExtra("DATA", mConfig.getUsagePatternURLString()));
+        }catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -75,6 +101,13 @@ public class MainActivity extends AppCompatActivity {
         }if (resultCode == RESULT_OK && requestCode == Config.PRESURVEY_CODE) {
             activeAccessibilityConfirmDialog();
         }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        Log.d("trans", "onNewIntent");
+        setIntent(intent);
     }
 
     @Override
@@ -96,8 +129,11 @@ public class MainActivity extends AppCompatActivity {
             case R.id.accessibility_setting:
                 moveAccessibilitySetting();
                 return true;
+            case R.id.usage_pattern:
+                startUsagePattern();
+                return true;
             case R.id.information:
-                activeInformationDialog();
+                activieInformation();
                  return true;
             case R.id.presurvey:
                 presurvey();
@@ -105,12 +141,6 @@ public class MainActivity extends AppCompatActivity {
             case R.id.postsurvey:
                 postsurvey();
                 return true;
-
-            case R.id.debug_print:
-////                clear(mDB);
-//                testAdd(mDB);
-//                debugAllPrint(mDB);
-                 return true;
         }
         return false;
     }
@@ -142,6 +172,10 @@ public class MainActivity extends AppCompatActivity {
         mConfig.startPostsurvey();
     }
 
+    private void activieInformation() {
+        mConfig.startInformation();
+    }
+
     private boolean isNeedUserInfo() {
         return mConfig.getUserName().isEmpty() || mConfig.getPhoneNumber().isEmpty();
     }
@@ -151,7 +185,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void testAdd(DataBaseHelper db) {
-        long millis = new GregorianCalendar(2015, Calendar.FEBRUARY, 17).getTimeInMillis();
+        long millis = new GregorianCalendar(2016, Calendar.JUNE, 22).getTimeInMillis();
 
         for (int i = 0; i < 1000; i++) {
             db.addData(String.format("test-%1$d", i), "test", new RuntimeInfo(new Date(millis+i*1000), i));
@@ -196,7 +230,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void activeAccessibilityConfirmDialog() {
-        if (mConfig.isPassAccessbilityWarning())
+        if (mConfig.isAccessibilityEnabled())
             return;
 
         AlertDialog.Builder alertBuilder = new AlertDialog.Builder(this);
@@ -208,7 +242,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         moveAccessibilitySetting();
-                        mConfig.passAccessbilityWarning();
+                        dialog.dismiss();
                     }
                 });
 
@@ -217,20 +251,6 @@ public class MainActivity extends AppCompatActivity {
         alert.show();
     }
 
-    private void activeInformationDialog() {
-        AlertDialog.Builder alert = new AlertDialog.Builder(this);
-        alert.setPositiveButton(R.string.confirm, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();     //닫기
-            }
-        });
-        alert.setMessage(R.string.app_information);
-        AlertDialog dialog = alert.show();
-        TextView view = (TextView)dialog.findViewById(android.R.id.message);
-        view.setGravity(Gravity.CENTER);
-        dialog.show();
-    }
 }
 
 

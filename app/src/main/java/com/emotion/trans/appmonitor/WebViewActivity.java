@@ -87,6 +87,16 @@ public class WebViewActivity extends AppCompatActivity {
                 }
             });
         }
+
+        @JavascriptInterface
+        public void close() {
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    finish();
+                }
+            });
+        }
     }
 
 }

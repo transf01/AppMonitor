@@ -1,5 +1,6 @@
 package com.emotion.trans.appmonitor;
 
+import android.accessibilityservice.AccessibilityServiceInfo;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -7,6 +8,9 @@ import android.content.pm.ResolveInfo;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.util.Log;
+import android.view.accessibility.AccessibilityEvent;
+import android.view.accessibility.AccessibilityManager;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -17,6 +21,7 @@ import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.List;
 
 /**
  * Created by trans on 2016-03-16.
@@ -46,18 +51,18 @@ public class Config {
     private final String IS_SEND_USER_INFO = "IS_SEND_USER_INFO";
     private final String IS_COMPLETE_PRESURVEY = "IS_COMPLETE_PRESURVEY";
     private final String IS_COMPLETE_POSTSURVEY = "IS_COMPLETE_POSTSURVEY";
-    private final String ACCESSIBILITY_WARNING = "accessibility_warning";
     private final String HOST_INFO_URL = "http://transf01.github.io/app_monitor_rest/";
 
-    private final String DEFAULT_URL_INFO = "{ \"host\" : \"http://192.168.0.217:8000/\", " +
+    private final String DEFAULT_URL_INFO = "{ \"host\" : \"http://155.230.192.46:8001/\", " +
             "\"api_base\" : \"api/\", " +
             "\"history\" : \"history/\", " +
             "\"user_history\" : \"%s/date/%s/time/%s/\", " +
             "\"user\" : \"user/\", " +
             "\"excluded_package\": \"excluded_package/\", " +
-            "\"pre_survey\" : \"survey/1/\", " +
-            "\"post_survey\" : \"survey/2/\", " +
-            "\"exp_info\" : \"exp_info/2016_summer\" }";
+            "\"pre_survey\" : \"survey/2/\", " +
+            "\"post_survey\" : \"survey/3/\", " +
+            "\"exp_info\" : \"exp_info/2016_summer\", " +
+            "\"privacy\" : \"privacy/\" }";
 
     private final String DEFAULT_EXCLUDE_PACKAGE = "[{\"package_name\":\"com.android.settings\"}," +
             "{\"package_name\":\"com.android.keyguard\"}," +
@@ -75,22 +80,14 @@ public class Config {
 
     private SharedPreferences mPref;
     private Context mContext;
+    private AccessibilityManager mAccessibilityManager;
 
     private final SimpleDateFormat mDateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
     public Config(Context context) {
         mPref = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         mContext = context;
-    }
-
-    public boolean isPassAccessbilityWarning() {
-        return mPref.getBoolean(ACCESSIBILITY_WARNING, false);
-    }
-
-    public void passAccessbilityWarning() {
-        SharedPreferences.Editor editor = mPref.edit();
-        editor.putBoolean(ACCESSIBILITY_WARNING, true);
-        editor.commit();
+        mAccessibilityManager = (AccessibilityManager)mContext.getSystemService(Context.ACCESSIBILITY_SERVICE);
     }
 
     public boolean isSendUserInfo() {
@@ -304,6 +301,11 @@ public class Config {
         return getURLInfoValue(object, "host") + getURLInfoValue(object, "post_survey") + "?user_id=" + getUUID();
     }
 
+    public String getPrivacyURLString() throws MalformedURLException {
+        JSONObject object = getHostInfo();
+        return getURLInfoValue(object, "host") + getURLInfoValue(object, "privacy");
+    }
+
     public URL getUserURL() throws MalformedURLException {
         JSONObject object = getHostInfo();
         return new URL(getBaseURLString(object) + getURLInfoValue(object, "user"));
@@ -316,6 +318,12 @@ public class Config {
 
     public URL getHostInfoURL() throws MalformedURLException {
         return new URL(HOST_INFO_URL);
+    }
+
+    public String getUsagePatternURLString() throws MalformedURLException {
+        JSONObject object = getHostInfo();
+        Log.d("trans", "**************************"+object.toString());
+        return getURLInfoValue(object, "host") +"graph/?user_id=" + getUUID();
     }
 
     public boolean isHomeApp(String packageName) {
@@ -359,25 +367,47 @@ public class Config {
         return netInfo != null && netInfo.isConnectedOrConnecting();
     }
 
-    private void startSurvey(String url) {
+    private void startWebView(String url) {
         mContext.startActivity(new Intent(mContext, WebViewActivity.class)
                 .setAction(WebViewActivity.LOAD_URL)
                 .putExtra("DATA", url));
     }
 
+    private void showMalforedUrlError() {
+        Toast.makeText(mContext, R.string.bad_url_warning, Toast.LENGTH_SHORT).show();
+    }
+
     public void startPresurvey() {
         try {
-           startSurvey(getPostsurveyURLString());
+           startWebView(getPostsurveyURLString());
         }catch (MalformedURLException e) {
-            e.printStackTrace();
+            showMalforedUrlError();
         }
     }
 
     public void startPostsurvey() {
         try {
-            startSurvey( getPostsurveyURLString());
+            startWebView( getPostsurveyURLString());
         }catch (MalformedURLException e) {
-            e.printStackTrace();
+            showMalforedUrlError();
         }
+    }
+
+    public void startInformation() {
+        try {
+            startWebView( getPrivacyURLString());
+        }catch (MalformedURLException e) {
+            showMalforedUrlError();
+        }
+    }
+
+    public boolean isAccessibilityEnabled() {
+        List<AccessibilityServiceInfo> infos = mAccessibilityManager.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_GENERIC);
+        for (AccessibilityServiceInfo info : infos) {
+            if (info.eventTypes == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+                return true;
+            }
+        }
+        return false;
     }
 }
