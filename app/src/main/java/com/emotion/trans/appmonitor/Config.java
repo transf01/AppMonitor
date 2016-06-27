@@ -10,6 +10,7 @@ import android.net.NetworkInfo;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityManager;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -372,11 +373,15 @@ public class Config {
                 .putExtra("DATA", url));
     }
 
+    private void showMalforedUrlError() {
+        Toast.makeText(mContext, R.string.bad_url_warning, Toast.LENGTH_SHORT).show();
+    }
+
     public void startPresurvey() {
         try {
            startWebView(getPostsurveyURLString());
         }catch (MalformedURLException e) {
-            e.printStackTrace();
+            showMalforedUrlError();
         }
     }
 
@@ -384,7 +389,7 @@ public class Config {
         try {
             startWebView( getPostsurveyURLString());
         }catch (MalformedURLException e) {
-            e.printStackTrace();
+            showMalforedUrlError();
         }
     }
 
@@ -392,7 +397,7 @@ public class Config {
         try {
             startWebView( getPrivacyURLString());
         }catch (MalformedURLException e) {
-            e.printStackTrace();
+            showMalforedUrlError();
         }
     }
 
