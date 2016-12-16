@@ -182,7 +182,7 @@ public class MainActivity extends AppCompatActivity {
         long millis = new GregorianCalendar(2016, Calendar.JUNE, 22).getTimeInMillis();
 
         for (int i = 0; i < 1000; i++) {
-            db.addData(String.format("test-%1$d", i), "test", new RuntimeInfo(new Date(millis+i*1000), i));
+            db.addData(String.format("test-%1$d", i), "test", new AppRuntimeInfo(new Date(millis+i*1000), i));
         }
     }
 

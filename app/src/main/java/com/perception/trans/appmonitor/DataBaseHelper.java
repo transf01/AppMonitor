@@ -38,7 +38,7 @@ public class DataBaseHelper{
         mdb.close();
     }
 
-    public long addData(String appName, String packageName, RuntimeInfo runtimeInfo) {
+    public long addData(String appName, String packageName, AppRuntimeInfo runtimeInfo) {
         ContentValues values = new ContentValues();
         values.put(APP_NAME, appName);
         values.put(PACKAGE_NAME, packageName);

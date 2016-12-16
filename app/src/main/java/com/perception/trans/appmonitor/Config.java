@@ -39,21 +39,21 @@ public class Config {
 //    public static final String EXCLUDED_PACKAGE_URL = HOST + "excluded_package/";
 
 
-    private final String PREF_NAME = "pref";
-    private final String URL_INFO = "URL_INFO";
-    private final String UUID = "UUID";
-    private final String USER_NAME = "NAME";
-    private final String USER_PHONE = "PHONE";
-    private final String EXP_CODE = "EXP_CODE";
-    private final String EXP_INFO = "EXP_INFO";
-    private final String EXP_START_DATE = "EXP_START_DATE";
-    private final String EXCLUDED_PACKAGE = "EXCLUDED_PACKAGE";
-    private final String IS_SEND_USER_INFO = "IS_SEND_USER_INFO";
-    private final String IS_COMPLETE_PRESURVEY = "IS_COMPLETE_PRESURVEY";
-    private final String IS_COMPLETE_POSTSURVEY = "IS_COMPLETE_POSTSURVEY";
-    private final String HOST_INFO_URL = "http://transf01.github.io/app_monitor_rest/";
+    private static final String PREF_NAME = "pref";
+    private static final String URL_INFO = "URL_INFO";
+    private static final String UUID = "UUID";
+    private static final String USER_NAME = "NAME";
+    private static final String USER_PHONE = "PHONE";
+    private static final String EXP_CODE = "EXP_CODE";
+    private static final String EXP_INFO = "EXP_INFO";
+    private static final String EXP_START_DATE = "EXP_START_DATE";
+    private static final String EXCLUDED_PACKAGE = "EXCLUDED_PACKAGE";
+    private static final String IS_SEND_USER_INFO = "IS_SEND_USER_INFO";
+    private static final String IS_COMPLETE_PRESURVEY = "IS_COMPLETE_PRESURVEY";
+    private static final String IS_COMPLETE_POSTSURVEY = "IS_COMPLETE_POSTSURVEY";
+    private static final String HOST_INFO_URL = "http://transf01.github.io/app_monitor_rest/";
 
-    private final String DEFAULT_URL_INFO = "{ \"host\" : \"http://155.230.192.46:8001/\", " +
+    private static final String DEFAULT_URL_INFO = "{ \"host\" : \"http://155.230.192.46:8001/\", " +
             "\"api_base\" : \"api/\", " +
             "\"history\" : \"history/\", " +
             "\"user_history\" : \"%s/date/%s/time/%s/\", " +
@@ -64,14 +64,14 @@ public class Config {
             "\"exp_info\" : \"exp_info/2016_summer\", " +
             "\"privacy\" : \"privacy/\" }";
 
-    private final String DEFAULT_EXCLUDE_PACKAGE = "[{\"package_name\":\"com.android.settings\"}," +
+    private static final String DEFAULT_EXCLUDE_PACKAGE = "[{\"package_name\":\"com.android.settings\"}," +
             "{\"package_name\":\"com.android.keyguard\"}," +
             "{\"package_name\":\"android\"}," +
             "{\"package_name\":\"com.cashslide\"}," +
             "{\"package_name\":\"com.nexon.nxplay\"}," +
             "{\"package_name\":\"com.android.systemui\"}]\n";
 
-    private final String DEFAULT_EXP_INFO = "{\n" +
+    private static final String DEFAULT_EXP_INFO = "{\n" +
             "    \"type\": \"2016_summer\",\n" +
             "    \"period\": 7\n" +
             "}";
@@ -326,14 +326,14 @@ public class Config {
         return getURLInfoValue(object, "host") +"graph/?user_id=" + getUUID();
     }
 
-    public boolean isHomeApp(String packageName) {
+    public boolean isHomeApp(AppInfo info) {
         Intent intent = new Intent(Intent.ACTION_MAIN);
         intent.addCategory(Intent.CATEGORY_HOME);
         ResolveInfo res = mContext.getPackageManager().resolveActivity(intent, 0);
         if (res.activityInfo == null)
             return false;
 
-        return packageName.equals(res.activityInfo.packageName);
+        return info.getPackageName().equals(res.activityInfo.packageName);
 
     }
 
@@ -353,12 +353,6 @@ public class Config {
             e.printStackTrace();
         }
         return false;
-    }
-
-    public boolean isWiFiConnected() {
-        ConnectivityManager connMgr = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
-        return (networkInfo != null && networkInfo.getType() == ConnectivityManager.TYPE_WIFI && networkInfo.isConnected());
     }
 
     public boolean isOnline() {

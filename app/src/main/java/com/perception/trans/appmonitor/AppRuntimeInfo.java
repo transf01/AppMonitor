@@ -7,7 +7,7 @@ import java.util.Date;
 /**
  * Created by inspiration on 2016-04-27.
  */
-public class RuntimeInfo {
+public class AppRuntimeInfo {
 
     private long mRunTime;
     private Date mStartDate;
@@ -16,19 +16,18 @@ public class RuntimeInfo {
     private final SimpleDateFormat mDateFormat = new SimpleDateFormat("yyyy-MM-dd");
     private final SimpleDateFormat mTimeFormat = new SimpleDateFormat("HH:mm:ss");
 
-    public RuntimeInfo() {
+    public AppRuntimeInfo() {
         mStartDate = Calendar.getInstance().getTime();
         mStartSystemTime = System.nanoTime();
     }
 
-    public RuntimeInfo(Date startDate, long runTime) {
+    public AppRuntimeInfo(Date startDate, long runTime) {
         mStartDate = startDate;
         mRunTime = runTime;
     }
 
-    public RuntimeInfo stop() {
+    public void stop() {
         mRunTime = (System.nanoTime() - mStartSystemTime)/1000000000;
-        return this;
     }
 
     public String getStartDateString() {

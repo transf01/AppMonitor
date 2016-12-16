@@ -9,9 +9,9 @@ public class ScreenReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         if (Intent.ACTION_SCREEN_OFF.equals(intent.getAction())){
-            sendIntent(context, "screenOff");
+            sendIntent(context, MonitoringService.SCREEN_OFF);
         }else if (Intent.ACTION_SCREEN_ON.equals(intent.getAction())) {
-            sendIntent(context, "screenOn");
+            sendIntent(context, MonitoringService.SCREEN_ON);
         }
     }
 

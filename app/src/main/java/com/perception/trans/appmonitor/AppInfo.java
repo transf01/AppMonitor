@@ -1,17 +1,18 @@
 package com.perception.trans.appmonitor;
 
+import android.util.Log;
+
 /**
  * Created by trans on 2016-02-02.
  */
 public class AppInfo {
     private String mAppName;
     private String mPackageName;
-    private Config mConfig;
+    private AppRuntimeInfo mRuntimeInfo = null;
 
-    public AppInfo(String appName, String packageNage, Config config) {
+    public AppInfo(String appName, String packageName) {
         mAppName = appName;
-        mPackageName = packageNage;
-        mConfig = config;
+        mPackageName = packageName;
     }
 
     @Override
@@ -19,24 +20,36 @@ public class AppInfo {
         return mAppName+ "(" + mPackageName+")";
     }
 
-    public String getAppName() {
-        return mAppName;
-    }
-
     public String getPackageName() {
         return mPackageName;
     }
 
-    public boolean isHomeApp() {
-        return mConfig.isHomeApp(mPackageName);
+    public boolean isCheckable(Config config) {
+        return !(config.isHomeApp(this) || config.isExcludedPackage(mPackageName));
     }
 
-    public boolean isCheckable() {
-        return !(isHomeApp() || mConfig.isExcludedPackage(mPackageName));
+    public boolean isOnMonitoring() {
+        return mRuntimeInfo != null;
+    }
+
+    public void startRuntime() {
+        mRuntimeInfo = new AppRuntimeInfo();
+    }
+
+    public void stopRuntime() {
+        if (mRuntimeInfo != null) {
+            mRuntimeInfo.stop();
+            Log.d("trans", mRuntimeInfo.toString());
+        }
+    }
+
+    public void save(DataBaseHelper db) {
+        db.addData(mAppName, mPackageName, mRuntimeInfo);
+        mRuntimeInfo = null;
     }
 
     private boolean isValid() {
-        return !(mAppName == null || mPackageName == null);
+        return mAppName != null && mPackageName != null;
     }
 
     public boolean isDifferent(AppInfo info) {

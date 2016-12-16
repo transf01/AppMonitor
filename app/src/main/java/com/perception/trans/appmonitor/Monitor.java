@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.os.AsyncTask;
-import android.os.Handler;
 import android.util.Log;
 
 import org.json.JSONArray;
@@ -20,6 +19,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by trans on 2016-02-02.
@@ -31,24 +31,13 @@ public class Monitor{
     private static final int SENT = 2;
 
     private Context mContext;
-    private Handler mHandler;
-    private Runnable mMonitoringRunnable;
-    private HashMap<String, CommandHandler> mCommandHandlerMap = new HashMap<>();
-    private AppInfo mCurrentAppInfo;
-    private RuntimeInfo mRuntimeInfo;
-    private MonitorInfo mInfo = null;
+    private Map<String, CommandHandler> mCommandHandlerMap = new HashMap<>();
+    private AppInfo mCurrentAppInfo, mPreviousAppInfo = null;
     private DataBaseHelper mdb;
     private Config mConfig;
 
     public Monitor(Context context, DataBaseHelper db) {
         mContext = context;
-        mHandler = new Handler();
-        mMonitoringRunnable = new Runnable() {
-            @Override
-            public void run() {
-                startMonitoring();
-            }
-        };
         mdb = db;
         mConfig = new Config(context);
         initCommandHandlerMap();
@@ -60,30 +49,38 @@ public class Monitor{
 
     private void initCommandHandlerMap() {
         addCommandHandler(MonitoringService.START_MONITORING, new WindowChangeCommandHandler());
-        addCommandHandler("screenOn", new ScreenOnCommandHandler());
-        addCommandHandler("screenOff", new ScreenOffCommandHandler());
+        addCommandHandler(MonitoringService.SCREEN_ON, new ScreenOnCommandHandler());
+        addCommandHandler(MonitoringService.SCREEN_OFF, new ScreenOffCommandHandler());
         addCommandHandler(MonitoringService.SEND_DATA, new SendHandler());
     }
 
-    private void startMonitoring(){
-        if (mCurrentAppInfo != null && mCurrentAppInfo.isCheckable()) {
-            mInfo = new MonitorInfo(mCurrentAppInfo, mdb);
-            Log.d("trans", "### start : " + mInfo.toString());
+    private void startMonitoring(AppInfo appInfo){
+        mCurrentAppInfo = appInfo;
+        if (appInfo != null && appInfo.isCheckable(mConfig)) {
+            appInfo.startRuntime();
+            Log.d("trans", "### start : " + appInfo.toString());
         }
     }
 
-    private void handleChangedAppInfo(AppInfo appInfo) {
-        mCurrentAppInfo = appInfo;
-        if (mConfig.isExpExpired() && mCurrentAppInfo.isHomeApp()) {
-            Log.d("trans", "----------------expired at home---------------");
+    private void handleAppStop() {
+        if (mConfig.isExpExpired()) {
+            return;
+        }
+
+        if (mCurrentAppInfo != null && mCurrentAppInfo.isOnMonitoring()) {
+            mCurrentAppInfo.stopRuntime();
+            mCurrentAppInfo.save(mdb);
+            sendSavedHistory();
+        }
+    }
+
+    private void startPostSurvey() {
+        if (mConfig.isExpExpired() && mConfig.isHomeApp(mCurrentAppInfo)) {
+            Log.d("trans", "----------------expired and home screen ---------------");
             if (!mConfig.isCompletePostsurvey()) {
                 mContext.startActivity(new Intent(mContext, TranslucentActivity.class).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_HISTORY));
             }
         }
-    }
-
-    private void handleChangedAppStartTime() {
-        mRuntimeInfo = new RuntimeInfo();
     }
 
     private void updateInfo(RestGetTaskPostHandler handler) {
@@ -131,7 +128,7 @@ public class Monitor{
     }
 
     private void sendSavedHistory() {
-        if (mConfig.isWiFiConnected()) {
+        if (mConfig.isOnline()) {
             updateInfo(new RestGetTaskPostHandler() {
                 @Override
                 public void handlePostProcess() {
@@ -141,16 +138,9 @@ public class Monitor{
         }
     }
 
-    private void handleAppStop() {
-        if (mConfig.isExpExpired()) {
-            return;
-        }
-
-        if (mInfo != null) {
-            mInfo.save(mRuntimeInfo.stop());
-            mInfo = null;
-            sendSavedHistory();
-        }
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    interface CommandHandler {
+        void handle(Intent intent);
     }
 
     public void handleCommand(Intent intent) {
@@ -159,21 +149,15 @@ public class Monitor{
 
         CommandHandler handler = mCommandHandlerMap.get(action);
         if (handler != null) {
-            handler.handle(intent, mHandler, mMonitoringRunnable);
+            handler.handle(intent);
         }
     }
-
-    public void clearHandler() {
-        mHandler.removeCallbacks(mMonitoringRunnable);
-    }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
     private class ScreenOffCommandHandler implements CommandHandler{
 
         @Override
-        public void handle(Intent intent, Handler handler, Runnable startMonitoring) {
-            handler.removeCallbacks(startMonitoring);
+        public void handle(Intent intent) {
             handleAppStop();
         }
     }
@@ -182,27 +166,21 @@ public class Monitor{
     private class ScreenOnCommandHandler implements CommandHandler {
 
         @Override
-        public void handle(Intent intent, Handler handler, Runnable startMonitoring) {
-            handler.removeCallbacks(startMonitoring);
-            handler.postDelayed(startMonitoring, MONITORING_JUDGE_TIME);
-            handleChangedAppStartTime();
+        public void handle(Intent intent) {
+            startMonitoring(mCurrentAppInfo);
         }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
     private class WindowChangeCommandHandler implements CommandHandler{
-        AppInfo mPreviousAppInfo = null;
 
-        public void handle(Intent intent, Handler handler, Runnable startMonitoring) {
+        public void handle(Intent intent) {
 
-            AppInfo appInfo = new AppInfo(intent.getStringExtra("AppName"), intent.getStringExtra("PackageName"), mConfig);
+            AppInfo appInfo = new AppInfo(intent.getStringExtra("AppName"), intent.getStringExtra("PackageName"));
 
             if (appInfo.isDifferent(mPreviousAppInfo)) {
-                handler.removeCallbacks(startMonitoring);
-                handler.postDelayed(startMonitoring, MONITORING_JUDGE_TIME);
                 handleAppStop();
-                handleChangedAppStartTime();
-                handleChangedAppInfo(appInfo);
+                startMonitoring(appInfo);
                 mPreviousAppInfo = appInfo;
             }
         }
@@ -236,15 +214,15 @@ public class Monitor{
         }
 
         @Override
-        public void handle(Intent intent, Handler handler, Runnable startMonitoring) {
-            if(mConfig.isWiFiConnected()) {
+        public void handle(Intent intent) {
+            if(mConfig.isOnline()) {
                 sendData();
             }
         }
     }
 
     private interface RestGetTaskPostHandler {
-        public void handlePostProcess() ;
+        void handlePostProcess() ;
     }
 
    ///////////////////////////////////////////////////////////////////////////////////////////////

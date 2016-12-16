@@ -9,6 +9,8 @@ import android.os.IBinder;
 public class MonitoringService extends Service {
     public static final String SEND_DATA = "SEND_DATA";
     public static final String START_MONITORING = "startMonitoring";
+    public static final String SCREEN_ON= "screenOn";
+    public static final String SCREEN_OFF= "screenOff";
 
     private ScreenReceiver mScreenReceiver = new ScreenReceiver();
     private Monitor mMonitor = null;
@@ -50,7 +52,6 @@ public class MonitoringService extends Service {
     public void onDestroy() {
         super.onDestroy();
         unregisterScreenReceiver();
-        mMonitor.clearHandler();
         mdb.close();
     }
 
