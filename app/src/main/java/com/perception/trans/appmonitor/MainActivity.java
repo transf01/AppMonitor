@@ -23,7 +23,6 @@ public class MainActivity extends AppCompatActivity {
 
     private DataBaseHelper mDB;
     private Config mConfig;
-    public static final String CHECK_ACCESSIBILITY = "CHECK_ACCESSIBILITY";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,35 +42,38 @@ public class MainActivity extends AppCompatActivity {
         super.onStart();
         Log.d("trans", "onStart");
 
-        Intent i = getIntent();
-        if (i != null && CHECK_ACCESSIBILITY.equals(i.getAction())) {
-            activeAccessibilityConfirmDialog();
-        }
-
         StatCursorTreeAdapter adapter = new StatCursorTreeAdapter(mDB.getDates(), this, mDB);
         ExpandableListView list = (ExpandableListView)findViewById(R.id.stat_list);
         list.setAdapter(adapter);
-        if (isNeedUserInfo()) {
-            startActivityForResult(new Intent(this, UserInfoActivity.class).setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY), Config.USERINFO_CODE);
-        } else{
-            startPresurveyIfNeed();
-        }
+
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         Log.d("trans", "onResume");
+        if (isNeedUserInfo()) {
+            startActivity(new Intent(this, UserInfoActivity.class).setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY));
+            return;
+        } else if (!mConfig.isCompletePresurvey()){
+            startPreSurvey();
+            return;
+        } else if (!GoalSettingAlarm.getInstance().start(this)) {
+            startGoalSettingAlarmActivity();
+            return;
+        }
+        else if (!mConfig.isAccessibilityEnabled()) {
+            startAccessibilityConfirmDialog();
+            return;
+        }
+
     }
 
-    private void startPresurveyIfNeed() {
-        if (mConfig.isCompletePresurvey())
-            return;
-
+    private void startPreSurvey() {
         try {
-            startActivityForResult(new Intent(this, WebViewActivity.class)
+            startActivity(new Intent(this, WebViewActivity.class)
                     .setAction(WebViewActivity.LOAD_URL).setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
-                    .putExtra("DATA", mConfig.getPresurveyURLString()), Config.PRESURVEY_CODE);
+                    .putExtra("DATA", mConfig.getPresurveyURLString()));
         }catch (MalformedURLException e) {
             e.printStackTrace();
         }
@@ -87,15 +89,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode == RESULT_OK && requestCode == Config.USERINFO_CODE) {
-            startPresurveyIfNeed();
-        }if (resultCode == RESULT_OK && requestCode == Config.PRESURVEY_CODE) {
-            activeAccessibilityConfirmDialog();
-        }
-    }
 
     @Override
     protected void onNewIntent(Intent intent) {
@@ -122,6 +115,9 @@ public class MainActivity extends AppCompatActivity {
         switch(item.getItemId()) {
             case R.id.accessibility_setting:
                 moveAccessibilitySetting();
+                return true;
+            case R.id.goal_setting:
+                startGoalSettingAlarmActivity();
                 return true;
             case R.id.usage_pattern:
                 startUsagePattern();
@@ -222,12 +218,12 @@ public class MainActivity extends AppCompatActivity {
         startActivityForResult(intent, 0);
     }
 
+    private void startGoalSettingAlarmActivity() {
+        startActivity(new Intent(this, GoalSettingAlarmActivity.class));
+    }
 
-    private void activeAccessibilityConfirmDialog() {
-        if (mConfig.isAccessibilityEnabled())
-            return;
-
-        AlertDialog.Builder alertBuilder = new AlertDialog.Builder(this);
+    private void startAccessibilityConfirmDialog() {
+        AlertDialog.Builder alertBuilder = new AlertDialog.Builder(MainActivity.this);
         String alertMessage = String.format(getResources().getString(R.string.accessibility_alert),
                 getResources().getString(R.string.app_name), getResources().getString(R.string.confirm));
         alertBuilder.setMessage(alertMessage).setCancelable(false);

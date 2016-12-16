@@ -27,10 +27,6 @@ import java.util.List;
  * Created by trans on 2016-03-16.
  */
 public class Config {
-
-    public static final int USERINFO_CODE = 0x100;
-    public static final int PRESURVEY_CODE = 0x200;
-
 //    public static final String HOST = "http://192.168.0.217:8000/api/";
 //    //public static final String HOST = "http://155.230.192.46:8000/api/";
 //
@@ -39,7 +35,7 @@ public class Config {
 //    public static final String EXCLUDED_PACKAGE_URL = HOST + "excluded_package/";
 
 
-    private static final String PREF_NAME = "pref";
+    public static final String PREF_NAME = "pref";
     private static final String URL_INFO = "URL_INFO";
     private static final String UUID = "UUID";
     private static final String USER_NAME = "NAME";

@@ -13,7 +13,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme.NoActionBar">
         <activity
-            android:name="com.perception.trans.appmonitor.MainActivity"
+            android:name=".MainActivity"
             android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -23,7 +23,7 @@
         </activity>
 
         <service
-            android:name="com.perception.trans.appmonitor.WindowChangeDetectingService"
+            android:name=".WindowChangeDetectingService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
@@ -33,7 +33,7 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibilityservice" />
         </service>
-        <service android:name="com.perception.trans.appmonitor.MonitoringService">
+        <service android:name=".MonitoringService">
             <intent-filter>
                 <action android:name="startMonitoring" />
                 <action android:name="screenOn" />
@@ -42,28 +42,29 @@
             </intent-filter>
         </service>
 
-        <receiver android:name="com.perception.trans.appmonitor.WIFIReceiver">
+        <receiver android:name=".WIFIReceiver">
             <intent-filter>
                 <action android:name="android.net.wifi.STATE_CHANGE" />
             </intent-filter>
         </receiver>
 
         <activity
-            android:name="com.perception.trans.appmonitor.WebViewActivity"
+            android:name=".WebViewActivity"
             android:label="@string/title_activity_web_view"
             android:theme="@style/AppTheme.NoActionBar" />
-        <activity android:name="com.perception.trans.appmonitor.UserInfoActivity" />
+        <activity android:name=".UserInfoActivity" />
         <activity
-            android:name="com.perception.trans.appmonitor.TranslucentActivity"
+            android:name=".TranslucentActivity"
             android:launchMode="singleTask"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
-        <receiver
-            android:name="com.perception.trans.appmonitor.BootCompletedReceiver">
+        <receiver android:name=".BootCompletedReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
+        <activity android:name=".GoalSettingAlarmActivity"></activity>
     </application>
 
 </manifest>

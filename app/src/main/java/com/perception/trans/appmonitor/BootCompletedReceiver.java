@@ -15,7 +15,6 @@ public class BootCompletedReceiver extends BroadcastReceiver {
             Config config = new Config(context);
             if (!config.isAccessibilityEnabled()) {
                 context.startActivity(new Intent(context, MainActivity.class)
-                        .setAction(MainActivity.CHECK_ACCESSIBILITY)
                         .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             }
         }
