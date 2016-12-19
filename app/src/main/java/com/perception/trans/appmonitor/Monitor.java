@@ -138,6 +138,17 @@ public class Monitor{
         }
     }
 
+    public void checkCondition() {
+        if (!mConfig.isAccessibilityEnabled()) {
+            mContext.startActivity(new Intent(mContext, MainActivity.class)
+                    .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        }
+
+        if (!GoalSettingAlarm.getInstance().start(mContext)) {
+            mContext.startActivity(new Intent(mContext, GoalSettingAlarmActivity.class).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        }
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////////
     interface CommandHandler {
         void handle(Intent intent);

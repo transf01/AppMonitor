@@ -44,6 +44,7 @@ public class MonitoringService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+
         mMonitor.handleCommand(intent);
         return super.onStartCommand(intent, flags, startId);
     }

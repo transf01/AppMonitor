@@ -18,15 +18,15 @@ public class AlarmReceiver extends BroadcastReceiver {
         Log.d("trans", "Alarm receive");
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
 
-//        builder.setContentTitle("타이틀")
-//                .setContentText("텍스트")
-//                .setSmallIcon(R.drawable.icon_64x64)
-//                .setPriority( android.support.v4.app.NotificationCompat.PRIORITY_MAX )
-//                .setSound(RingtoneManager.getActualDefaultRingtoneUri( context, RingtoneManager.TYPE_NOTIFICATION ))
-//                .setContentIntent(PendingIntent.getActivity(context, 0, new Intent(context, InformationActivity.class), PendingIntent.FLAG_ONE_SHOT));
-//
-//
-//        NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-//        nm.notify(1, builder.build());
+        builder.setContentTitle(context.getResources().getString(R.string.alarm_noti_title))
+                .setContentText(context.getResources().getString(R.string.alarm_noti_text))
+                .setSmallIcon(R.drawable.ic_phone_android_black_24dp)
+                .setPriority( android.support.v4.app.NotificationCompat.PRIORITY_MAX )
+                .setSound(RingtoneManager.getActualDefaultRingtoneUri( context, RingtoneManager.TYPE_NOTIFICATION ))
+                .setContentIntent(PendingIntent.getActivity(context, 0, new Intent(context, GoalActivity.class), PendingIntent.FLAG_ONE_SHOT));
+
+
+        NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        nm.notify(1, builder.build());
     }
 }

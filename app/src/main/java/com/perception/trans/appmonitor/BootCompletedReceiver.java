@@ -12,11 +12,7 @@ public class BootCompletedReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
         if(action.equals(Intent.ACTION_BOOT_COMPLETED)) {
-            Config config = new Config(context);
-            if (!config.isAccessibilityEnabled()) {
-                context.startActivity(new Intent(context, MainActivity.class)
-                        .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-            }
+            context.startService(new Intent(context, MonitoringService.class));
         }
     }
 }

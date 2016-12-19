@@ -5,6 +5,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.util.Log;
 import android.util.Pair;
 
 import java.util.Calendar;
@@ -56,6 +57,7 @@ public class GoalSettingAlarm {
 
     private void start(Context context, int hourOfDay, int minute) {
         AlarmManager manager = (AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
+        Log.d("trans", "-------------- alarm start ------------"+hourOfDay+" " +minute+"---------");
         manager.setInexactRepeating(AlarmManager.RTC_WAKEUP
                 , getTriggerTime(System.currentTimeMillis(), hourOfDay, minute)
                 , AlarmManager.INTERVAL_DAY
