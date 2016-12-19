@@ -64,7 +64,8 @@
             </intent-filter>
         </receiver>
 
-        <activity android:name=".GoalSettingAlarmActivity"></activity>
+        <activity android:name=".GoalSettingAlarmActivity" />
+        <activity android:name=".GoalActivity"></activity>
     </application>
 
 </manifest>

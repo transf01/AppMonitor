@@ -34,6 +34,9 @@ public class Config {
 //    public static final String USER_URL = HOST + "user";
 //    public static final String EXCLUDED_PACKAGE_URL = HOST + "excluded_package/";
 
+    public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+    public static final SimpleDateFormat TIME_FORMAT = new SimpleDateFormat("HH:mm:ss");
+
 
     public static final String PREF_NAME = "pref";
     private static final String URL_INFO = "URL_INFO";
@@ -96,7 +99,7 @@ public class Config {
         editor.commit();
     }
 
-    public boolean isCompletePresurvey() {
+    public boolean isCompletePreSurvey() {
         return mPref.getBoolean(IS_COMPLETE_PRESURVEY, false);
     }
 
@@ -174,6 +177,10 @@ public class Config {
         SharedPreferences.Editor editor = mPref.edit();
         editor.putString(USER_PHONE, name);
         editor.commit();
+    }
+
+    public boolean isNeedUserInfo() {
+        return getUserName().isEmpty() || getPhoneNumber().isEmpty();
     }
 
     public String getExpCode() {
@@ -400,4 +407,5 @@ public class Config {
         }
         return false;
     }
+
 }

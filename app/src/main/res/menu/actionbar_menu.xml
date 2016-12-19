@@ -4,8 +4,10 @@ xmlns:AppMonitor="http://schemas.android.com/apk/res-auto">
 <!-- Settings, should always be in the overflow -->
 <item android:id="@+id/accessibility_setting"
     android:title="@string/accessibility_setting"/>
-    <item android:id="@+id/goal_setting"
-        android:title="@string/goalsetting"/>
+    <item android:id="@+id/goal_setting_alarm"
+        android:title="@string/goal_setting_alarm"/>
+    <item android:id="@+id/today_goal"
+        android:title="@string/today_goal"/>
     <item android:id="@+id/usage_pattern"
         android:title="@string/usage_pattern"/>
     <item android:id="@+id/presurvey"

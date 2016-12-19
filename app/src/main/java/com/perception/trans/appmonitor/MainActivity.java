@@ -52,22 +52,24 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         Log.d("trans", "onResume");
-        if (isNeedUserInfo()) {
+        if (mConfig.isNeedUserInfo()) {
             startActivity(new Intent(this, UserInfoActivity.class).setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY));
-            return;
-        } else if (!mConfig.isCompletePresurvey()){
+        } else if (!mConfig.isCompletePreSurvey()){
             startPreSurvey();
-            return;
         } else if (!GoalSettingAlarm.getInstance().start(this)) {
             startGoalSettingAlarmActivity();
-            return;
-        }
-        else if (!mConfig.isAccessibilityEnabled()) {
+        } else if (!isSetTodayGoal()) {
+            startTodayGoal();
+        } else if (!mConfig.isAccessibilityEnabled()) {
             startAccessibilityConfirmDialog();
-            return;
         }
-
     }
+
+    private boolean isSetTodayGoal() {
+        Cursor cursor = mDB.getGoalByDate(Config.DATE_FORMAT.format(Calendar.getInstance().getTime()));
+        return cursor.getCount() != 0;
+    }
+
 
     private void startPreSurvey() {
         try {
@@ -116,8 +118,11 @@ public class MainActivity extends AppCompatActivity {
             case R.id.accessibility_setting:
                 moveAccessibilitySetting();
                 return true;
-            case R.id.goal_setting:
+            case R.id.goal_setting_alarm:
                 startGoalSettingAlarmActivity();
+                return true;
+            case R.id.today_goal:
+                startTodayGoal();
                 return true;
             case R.id.usage_pattern:
                 startUsagePattern();
@@ -140,7 +145,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void presurvey() {
-        if (mConfig.isCompletePresurvey()) {
+        if (mConfig.isCompletePreSurvey()) {
             displayAlreadyAnswer();
             return;
         }
@@ -164,10 +169,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void activieInformation() {
         mConfig.startInformation();
-    }
-
-    private boolean isNeedUserInfo() {
-        return mConfig.getUserName().isEmpty() || mConfig.getPhoneNumber().isEmpty();
     }
 
     private void clear(DataBaseHelper db) {
@@ -239,6 +240,10 @@ public class MainActivity extends AppCompatActivity {
         AlertDialog alert = alertBuilder.create();
         alert.setTitle(R.string.warning);
         alert.show();
+    }
+
+    private void startTodayGoal() {
+        startActivity(new Intent(this, GoalActivity.class));
     }
 
 }

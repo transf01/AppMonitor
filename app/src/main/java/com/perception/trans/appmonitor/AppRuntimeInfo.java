@@ -13,9 +13,6 @@ public class AppRuntimeInfo {
     private Date mStartDate;
     private long mStartSystemTime;
 
-    private final SimpleDateFormat mDateFormat = new SimpleDateFormat("yyyy-MM-dd");
-    private final SimpleDateFormat mTimeFormat = new SimpleDateFormat("HH:mm:ss");
-
     public AppRuntimeInfo() {
         mStartDate = Calendar.getInstance().getTime();
         mStartSystemTime = System.nanoTime();
@@ -31,11 +28,11 @@ public class AppRuntimeInfo {
     }
 
     public String getStartDateString() {
-        return mDateFormat.format(mStartDate);
+        return Config.DATE_FORMAT.format(mStartDate);
     }
 
     public String getStartTimeString() {
-        return mTimeFormat.format(mStartDate);
+        return Config.TIME_FORMAT.format(mStartDate);
     }
 
     public long getRunTime() {
