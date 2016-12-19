@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ResolveInfo;
+import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.util.Log;
@@ -406,6 +407,13 @@ public class Config {
             }
         }
         return false;
+    }
+
+    public boolean isSetTodayGoal(DataBaseHelper db) {
+        Cursor cursor = db.getGoalByDate(Config.DATE_FORMAT.format(Calendar.getInstance().getTime()));
+        int count = cursor.getCount();
+        cursor.close();
+        return count != 0;
     }
 
 }

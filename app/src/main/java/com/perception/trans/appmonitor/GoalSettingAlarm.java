@@ -45,12 +45,23 @@ public class GoalSettingAlarm {
         return Pair.create(pref.getInt(NOTI_HOUR, -1), pref.getInt(NOTI_MIN, -1));
     }
 
-
-    public boolean start(Context context) {
-        Pair<Integer, Integer> time = getTime(context);
+    private boolean isValidTime(Pair<Integer, Integer> time) {
         if (time.first < 0 || time.second < 0) {
             return false;
         }
+        return true;
+    }
+
+    public boolean isValid(Context context) {
+        return isValidTime(getTime(context));
+    }
+
+    public boolean start(Context context) {
+        Pair<Integer, Integer> time = getTime(context);
+        if (!isValidTime(time)) {
+            return false;
+        }
+
         start(context, time.first, time.second);
         return true;
     }
@@ -61,7 +72,8 @@ public class GoalSettingAlarm {
         manager.setInexactRepeating(AlarmManager.RTC_WAKEUP
                 , getTriggerTime(System.currentTimeMillis(), hourOfDay, minute)
                 , AlarmManager.INTERVAL_DAY
-                , PendingIntent.getBroadcast(context, 0, new Intent(context, AlarmReceiver.class), PendingIntent.FLAG_UPDATE_CURRENT));
+                , PendingIntent.getService(context, 0, new Intent(context, MonitoringService.class).setAction(MonitoringService.ALARM), PendingIntent.FLAG_UPDATE_CURRENT));
+
     }
 
     private long getTriggerTime(long currentMillis, int hourOfDay, int minute) {

@@ -56,20 +56,14 @@ public class MainActivity extends AppCompatActivity {
             startActivity(new Intent(this, UserInfoActivity.class).setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY));
         } else if (!mConfig.isCompletePreSurvey()){
             startPreSurvey();
-        } else if (!GoalSettingAlarm.getInstance().start(this)) {
+        } else if (!GoalSettingAlarm.getInstance().isValid(this)) {
             startGoalSettingAlarmActivity();
-        } else if (!isSetTodayGoal()) {
+        } else if (!mConfig.isSetTodayGoal(mDB)) {
             startTodayGoal();
         } else if (!mConfig.isAccessibilityEnabled()) {
             startAccessibilityConfirmDialog();
         }
     }
-
-    private boolean isSetTodayGoal() {
-        Cursor cursor = mDB.getGoalByDate(Config.DATE_FORMAT.format(Calendar.getInstance().getTime()));
-        return cursor.getCount() != 0;
-    }
-
 
     private void startPreSurvey() {
         try {

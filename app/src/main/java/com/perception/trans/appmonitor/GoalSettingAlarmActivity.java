@@ -9,16 +9,18 @@ import android.widget.Button;
 import android.widget.TimePicker;
 
 public class GoalSettingAlarmActivity extends AppCompatActivity {
-    TimePicker mTimePicker;
+    private TimePicker mTimePicker;
+    private GoalSettingAlarm mGoalSettingAlarm;
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_goal_setting_alarm);
         mTimePicker = (TimePicker)findViewById(R.id.timePicker);
+        mGoalSettingAlarm = GoalSettingAlarm.getInstance();
 
-        Pair<Integer, Integer> savedTime = GoalSettingAlarm.getInstance().getTime(this);
-        Log.d("trans", "---------------------- " + savedTime.first + ":" + savedTime.second);
-        if (savedTime.first >=0 && savedTime.second >= 0) {
+        if (mGoalSettingAlarm.isValid(this)) {
+            Pair<Integer, Integer> savedTime = mGoalSettingAlarm.getTime(this);
+            Log.d("trans", "---------------------- " + savedTime.first + ":" + savedTime.second);
             mTimePicker.setCurrentHour(savedTime.first);
             mTimePicker.setCurrentMinute(savedTime.second);
         }

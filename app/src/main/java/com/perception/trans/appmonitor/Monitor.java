@@ -1,9 +1,13 @@
 package com.perception.trans.appmonitor;
 
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.media.RingtoneManager;
 import android.os.AsyncTask;
+import android.support.v7.app.NotificationCompat;
 import android.util.Log;
 
 import org.json.JSONArray;
@@ -52,6 +56,7 @@ public class Monitor{
         addCommandHandler(MonitoringService.SCREEN_ON, new ScreenOnCommandHandler());
         addCommandHandler(MonitoringService.SCREEN_OFF, new ScreenOffCommandHandler());
         addCommandHandler(MonitoringService.SEND_DATA, new SendHandler());
+        addCommandHandler(MonitoringService.ALARM, new AlarmCommandHandler());
     }
 
     private void startMonitoring(AppInfo appInfo){
@@ -139,13 +144,11 @@ public class Monitor{
     }
 
     public void checkCondition() {
-        if (!mConfig.isAccessibilityEnabled()) {
+        if (!mConfig.isAccessibilityEnabled()
+                || !GoalSettingAlarm.getInstance().isValid(mContext)
+                || !mConfig.isSetTodayGoal(mdb)) {
             mContext.startActivity(new Intent(mContext, MainActivity.class)
                     .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-        }
-
-        if (!GoalSettingAlarm.getInstance().start(mContext)) {
-            mContext.startActivity(new Intent(mContext, GoalSettingAlarmActivity.class).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         }
     }
 
@@ -163,6 +166,29 @@ public class Monitor{
             handler.handle(intent);
         }
     }
+
+
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    private class AlarmCommandHandler implements CommandHandler{
+
+        @Override
+        public void handle(Intent intent) {
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(mContext);
+
+            builder.setContentTitle(mContext.getResources().getString(R.string.alarm_noti_title))
+                    .setContentText(mContext.getResources().getString(R.string.alarm_noti_text))
+                    .setSmallIcon(R.drawable.ic_phone_android_black_24dp)
+                    .setPriority( android.support.v4.app.NotificationCompat.PRIORITY_MAX )
+                    .setSound(RingtoneManager.getActualDefaultRingtoneUri( mContext, RingtoneManager.TYPE_NOTIFICATION ))
+                    .setContentIntent(PendingIntent.getActivity(mContext, 0, new Intent(mContext, GoalActivity.class), PendingIntent.FLAG_ONE_SHOT));
+
+
+            NotificationManager nm = (NotificationManager) mContext.getSystemService(mContext.NOTIFICATION_SERVICE);
+            nm.notify(1, builder.build());
+        }
+    }
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
     private class ScreenOffCommandHandler implements CommandHandler{
