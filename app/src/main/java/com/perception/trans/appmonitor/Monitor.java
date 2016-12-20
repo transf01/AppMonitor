@@ -22,6 +22,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -40,10 +41,10 @@ public class Monitor{
     private DataBaseHelper mdb;
     private Config mConfig;
 
-    public Monitor(Context context, DataBaseHelper db) {
+    public Monitor(Context context, DataBaseHelper db, Config config) {
         mContext = context;
         mdb = db;
-        mConfig = new Config(context);
+        mConfig = config;
         initCommandHandlerMap();
     }
 
@@ -57,6 +58,7 @@ public class Monitor{
         addCommandHandler(MonitoringService.SCREEN_OFF, new ScreenOffCommandHandler());
         addCommandHandler(MonitoringService.SEND_DATA, new SendHandler());
         addCommandHandler(MonitoringService.ALARM, new AlarmCommandHandler());
+        addCommandHandler(MonitoringService.SENT_TODAY_GOAL, new SentTodayGoalCommandHandler());
     }
 
     private void startMonitoring(AppInfo appInfo){
@@ -143,12 +145,42 @@ public class Monitor{
         }
     }
 
-    public void checkCondition() {
-        if (!mConfig.isAccessibilityEnabled()
-                || !GoalSettingAlarm.getInstance().isValid(mContext)
-                || !mConfig.isSetTodayGoal(mdb)) {
-            mContext.startActivity(new Intent(mContext, MainActivity.class)
-                    .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+    private void activeNotification(String text, Class<?> cls) {
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(mContext);
+        builder.setContentTitle(mContext.getResources().getString(R.string.app_name))
+                .setContentText(text)
+                .setSmallIcon(R.drawable.ic_phone_android_black_24dp)
+                .setPriority( android.support.v4.app.NotificationCompat.PRIORITY_MAX )
+                .setSound(RingtoneManager.getActualDefaultRingtoneUri( mContext, RingtoneManager.TYPE_NOTIFICATION ))
+                .setContentIntent(PendingIntent.getActivity(mContext, 0, new Intent(mContext, cls), PendingIntent.FLAG_ONE_SHOT));
+        NotificationManager nm = (NotificationManager) mContext.getSystemService(mContext.NOTIFICATION_SERVICE);
+        nm.notify(1, builder.build());
+    }
+
+    private String getAlarmNotiText(Context context, Config config, DataBaseHelper db) {
+        String text = null;
+        GoalSettingAlarm alarm = GoalSettingAlarm.getInstance();
+        if (!config.isValidNotiAlarmPeriod())
+            return text;
+
+        if (alarm.isNeedSettingTime(context)) {
+            text = context.getResources().getString(R.string.request_alram_setting);
+        } else if (config.isNeedSetTodayGoal(GoalSettingAlarm.getInstance(), db)) {
+            text = context.getResources().getString(R.string.alarm_noti_text);
+        }
+        return text;
+    }
+
+    private void checkCondition() {
+        String text = null;
+        if (!mConfig.isAccessibilityEnabled() ) {
+            text = mContext.getResources().getString(R.string.accessibility_setting);
+        } else {
+            text = getAlarmNotiText(mContext, mConfig, mdb);
+        }
+
+        if (text != null) {
+            activeNotification(text, MainActivity.class);
         }
     }
 
@@ -174,18 +206,17 @@ public class Monitor{
 
         @Override
         public void handle(Intent intent) {
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(mContext);
-
-            builder.setContentTitle(mContext.getResources().getString(R.string.alarm_noti_title))
-                    .setContentText(mContext.getResources().getString(R.string.alarm_noti_text))
-                    .setSmallIcon(R.drawable.ic_phone_android_black_24dp)
-                    .setPriority( android.support.v4.app.NotificationCompat.PRIORITY_MAX )
-                    .setSound(RingtoneManager.getActualDefaultRingtoneUri( mContext, RingtoneManager.TYPE_NOTIFICATION ))
-                    .setContentIntent(PendingIntent.getActivity(mContext, 0, new Intent(mContext, GoalActivity.class), PendingIntent.FLAG_ONE_SHOT));
-
-
-            NotificationManager nm = (NotificationManager) mContext.getSystemService(mContext.NOTIFICATION_SERVICE);
-            nm.notify(1, builder.build());
+            Log.d("trans", "-----------alarm----------------------");
+            if (mConfig.isValidNotiAlarmPeriod() ) {
+                if (mConfig.isNeedSetTodayGoal(GoalSettingAlarm.getInstance(), mdb)) {
+                    activeNotification(mContext.getResources().getString(R.string.alarm_noti_text), GoalActivity.class);
+                } else {
+                    Log.d("trans", "----------don't need to set today goal---------");
+                }
+            } else {
+                Log.d("trans", "----------alarm stop because exp was expired---------");
+                GoalSettingAlarm.getInstance().stop(mContext);
+            }
         }
     }
 
@@ -204,6 +235,7 @@ public class Monitor{
 
         @Override
         public void handle(Intent intent) {
+            checkCondition();
             startMonitoring(mCurrentAppInfo);
         }
     }
@@ -222,6 +254,19 @@ public class Monitor{
             }
         }
     }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    private class SentTodayGoalCommandHandler implements CommandHandler {
+        @Override
+        public void handle(Intent intent) {
+            String goal_id = intent.getStringExtra(MonitoringService.EXTRA_GOAL_ID);
+            if (goal_id != null) {
+                mdb.updateGoalSendFlag(goal_id, 1);
+            }
+        }
+    }
+
+
     ///////////////////////////////////////////////////////////////////////////////////////////////
     private class SendHandler implements CommandHandler {
 
@@ -235,10 +280,22 @@ public class Monitor{
             }
         }
 
+        private void handlePostGoal() {
+            Cursor cursor = mdb.getGoalByDate(Config.DATE_FORMAT.format(Calendar.getInstance().getTime()));
+            if (cursor.moveToLast()) {
+                if (cursor.getInt(5) == 0) {
+                    new GoalInfo(mContext, mConfig).send(cursor);
+                }
+            }
+            cursor.close();
+        }
+
         private void sendData() {
             if (!mConfig.isSendUserInfo()) {
                 new UserInfo(mContext, mConfig).send();
-            } else {
+            }
+            else {
+                handlePostGoal();
                 Cursor cursor = mdb.getSendData();
                 if (cursor.getCount() > 0) {
                     PostAppHistory post = new PostAppHistory();

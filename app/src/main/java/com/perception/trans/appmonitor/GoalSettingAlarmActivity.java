@@ -18,9 +18,8 @@ public class GoalSettingAlarmActivity extends AppCompatActivity {
         mTimePicker = (TimePicker)findViewById(R.id.timePicker);
         mGoalSettingAlarm = GoalSettingAlarm.getInstance();
 
-        if (mGoalSettingAlarm.isValid(this)) {
-            Pair<Integer, Integer> savedTime = mGoalSettingAlarm.getTime(this);
-            Log.d("trans", "---------------------- " + savedTime.first + ":" + savedTime.second);
+        Pair<Integer, Integer> savedTime = mGoalSettingAlarm.getTime(this);
+        if (mGoalSettingAlarm.isValidTime(savedTime)) {
             mTimePicker.setCurrentHour(savedTime.first);
             mTimePicker.setCurrentMinute(savedTime.second);
         }

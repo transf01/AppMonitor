@@ -9,6 +9,7 @@ import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.util.Log;
+import android.util.Pair;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityManager;
 import android.widget.Toast;
@@ -27,19 +28,18 @@ import java.util.List;
 /**
  * Created by trans on 2016-03-16.
  */
-public class Config {
-//    public static final String HOST = "http://192.168.0.217:8000/api/";
-//    //public static final String HOST = "http://155.230.192.46:8000/api/";
+class Config {
+//    static final String HOST = "http://192.168.0.217:8000/api/";
+//    //static final String HOST = "http://155.230.192.46:8000/api/";
 //
-//    public static final String HISTORY_URL = HOST + "history";
-//    public static final String USER_URL = HOST + "user";
-//    public static final String EXCLUDED_PACKAGE_URL = HOST + "excluded_package/";
+//    static final String HISTORY_URL = HOST + "history";
+//    static final String USER_URL = HOST + "user";
+//    static final String EXCLUDED_PACKAGE_URL = HOST + "excluded_package/";
 
-    public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
-    public static final SimpleDateFormat TIME_FORMAT = new SimpleDateFormat("HH:mm:ss");
+    static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+    static final SimpleDateFormat TIME_FORMAT = new SimpleDateFormat("HH:mm:ss");
 
-
-    public static final String PREF_NAME = "pref";
+    static final String PREF_NAME = "pref";
     private static final String URL_INFO = "URL_INFO";
     private static final String UUID = "UUID";
     private static final String USER_NAME = "NAME";
@@ -58,10 +58,11 @@ public class Config {
             "\"history\" : \"history/\", " +
             "\"user_history\" : \"%s/date/%s/time/%s/\", " +
             "\"user\" : \"user/\", " +
+            "\"goal\" : \"goal/\", " +
             "\"excluded_package\": \"excluded_package/\", " +
             "\"pre_survey\" : \"survey/2/\", " +
             "\"post_survey\" : \"survey/3/\", " +
-            "\"exp_info\" : \"exp_info/2016_summer\", " +
+            "\"exp_info\" : \"exp_info/2016_winter\", " +
             "\"privacy\" : \"privacy/\" }";
 
     private static final String DEFAULT_EXCLUDE_PACKAGE = "[{\"package_name\":\"com.android.settings\"}," +
@@ -72,123 +73,133 @@ public class Config {
             "{\"package_name\":\"com.android.systemui\"}]\n";
 
     private static final String DEFAULT_EXP_INFO = "{\n" +
-            "    \"type\": \"2016_summer\",\n" +
-            "    \"period\": 7\n" +
+            "    \"type\": \"2016_winter\",\n" +
+            "    \"period\": 28\n" +
             "}";
 
-    private final int DEFAULT_PERIOD=7;
+    private final static int DEFAULT_PERIOD=7;
+    private final static int DAY_OF_GATHERING_PERIOD = 7;
 
     private SharedPreferences mPref;
     private Context mContext;
     private AccessibilityManager mAccessibilityManager;
 
-    private final SimpleDateFormat mDateFormat = new SimpleDateFormat("yyyy-MM-dd");
-
-    public Config(Context context) {
+    Config(Context context) {
         mPref = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         mContext = context;
         mAccessibilityManager = (AccessibilityManager)mContext.getSystemService(Context.ACCESSIBILITY_SERVICE);
     }
 
-    public boolean isSendUserInfo() {
+    boolean isSendUserInfo() {
         return mPref.getBoolean(IS_SEND_USER_INFO, false);
     }
 
-    public void saveSuccessSendUserInfo() {
+    void saveSuccessSendUserInfo() {
         SharedPreferences.Editor editor = mPref.edit();
         editor.putBoolean(IS_SEND_USER_INFO, true);
         editor.commit();
     }
 
-    public boolean isCompletePreSurvey() {
+    boolean isCompletePreSurvey() {
         return mPref.getBoolean(IS_COMPLETE_PRESURVEY, false);
     }
 
-    public void setCompletePresurvey() {
+    void setCompletePresurvey() {
         SharedPreferences.Editor editor = mPref.edit();
         editor.putBoolean(IS_COMPLETE_PRESURVEY, true);
         editor.commit();
     }
 
-    public boolean isCompletePostsurvey() {
+    boolean isCompletePostsurvey() {
         return mPref.getBoolean(IS_COMPLETE_POSTSURVEY, false);
     }
 
-    public void setCompletePostsurvey() {
+    void setCompletePostsurvey() {
         SharedPreferences.Editor editor = mPref.edit();
         editor.putBoolean(IS_COMPLETE_POSTSURVEY, true);
         editor.commit();
     }
 
-    public String getExpStartDate() {
+    String getExpStartDate() {
         return mPref.getString(EXP_START_DATE, "");
     }
 
-    public void testSetExpStartDate(String date) {
+    void testSetExpStartDate(String date) {
         SharedPreferences.Editor editor = mPref.edit();
         editor.putString(EXP_START_DATE, date);
         editor.commit();
     }
 
-    public void saveExpStartDateIfNeed() {
+    void saveExpStartDateIfNeed() {
         String startDate = getExpStartDate();
         if (startDate.isEmpty()) {
             SharedPreferences.Editor editor = mPref.edit();
-            editor.putString(EXP_START_DATE, mDateFormat.format(Calendar.getInstance().getTime()));
+            editor.putString(EXP_START_DATE, DATE_FORMAT.format(Calendar.getInstance().getTime()));
             editor.commit();
         }
     }
 
-    public boolean isExpExpired(){
-        Calendar calendar = Calendar.getInstance();
+    private boolean isAfter(int day){
+        Calendar endDay = Calendar.getInstance();
+        boolean result = false;
         try {
-            calendar.setTime(mDateFormat.parse(getExpStartDate()));
+            endDay.setTime(DATE_FORMAT.parse(getExpStartDate()));
+            endDay.add(Calendar.DATE, day);
+            result =  Calendar.getInstance().getTime().after(endDay.getTime());
+            Log.d("trans", "today is"+ (result?" ":" NOT ")+"after " + day + " day(s) from " + getExpStartDate());
         }catch (ParseException e) {
-            e.printStackTrace();
+            Log.e("trans", e.getStackTrace().toString());
         }
-        calendar.add(Calendar.DATE, getExpDays());
-        return Calendar.getInstance().getTime().after(calendar.getTime());
+        return result;
     }
 
-    public String getUUID() {
+    boolean isExpExpired(){
+        return isAfter(getExpDays());
+    }
+
+    boolean isValidNotiAlarmPeriod() {
+        return (isAfter(DAY_OF_GATHERING_PERIOD) && !isExpExpired());
+    }
+
+    String getUUID() {
         return mPref.getString(UUID, "");
     }
 
-    public void saveUUID(String uuid) {
+    void saveUUID(String uuid) {
         SharedPreferences.Editor editor = mPref.edit();
         editor.putString(UUID, uuid);
         editor.commit();
     }
 
-    public String getUserName() {
+    String getUserName() {
         return mPref.getString(USER_NAME, "");
     }
 
-    public void setUserName(String name) {
+    void setUserName(String name) {
         SharedPreferences.Editor editor = mPref.edit();
         editor.putString(USER_NAME, name);
         editor.commit();
     }
 
-    public String getPhoneNumber() {
+    String getPhoneNumber() {
         return mPref.getString(USER_PHONE, "");
     }
 
-    public void setPhoneNumber(String name) {
+    void setPhoneNumber(String name) {
         SharedPreferences.Editor editor = mPref.edit();
         editor.putString(USER_PHONE, name);
         editor.commit();
     }
 
-    public boolean isNeedUserInfo() {
+    boolean isNeedUserInfo() {
         return getUserName().isEmpty() || getPhoneNumber().isEmpty();
     }
 
-    public String getExpCode() {
+    String getExpCode() {
         return mPref.getString(EXP_CODE, "0");
     }
 
-    public void setExpCode(String expCode) {
+    void setExpCode(String expCode) {
         SharedPreferences.Editor editor = mPref.edit();
         editor.putString(EXP_CODE, expCode);
         editor.commit();
@@ -198,7 +209,7 @@ public class Config {
         return string != null && !string.isEmpty();
     }
 
-    public void setExcludedPackage(String packags) {
+    void setExcludedPackage(String packags) {
         if (!isValid(packags))
             return;
 
@@ -216,7 +227,7 @@ public class Config {
         }
     }
 
-    public void setExpInfo(String response) {
+    void setExpInfo(String response) {
         if (!isValid(response))
             return;
 
@@ -233,7 +244,7 @@ public class Config {
 
     }
 
-    public int getExpDays() {
+    private int getExpDays() {
         try {
             JSONObject object = new JSONObject(mPref.getString(EXP_INFO, DEFAULT_EXP_INFO));
             return object.getInt("period");
@@ -243,7 +254,7 @@ public class Config {
         return DEFAULT_PERIOD;
     }
 
-    public void setURLInfo(String jsonString) {
+    void setURLInfo(String jsonString) {
         if (!isValid(jsonString))
             return;
 
@@ -280,68 +291,70 @@ public class Config {
         return getURLInfoValue(object, "host") + getURLInfoValue(object, "api_base");
     }
 
-    public URL getHistoryURL() throws  MalformedURLException{
+    URL getHistoryURL() throws  MalformedURLException{
         JSONObject object = getHostInfo();
         return new URL(getBaseURLString(object) + getURLInfoValue(object, "history"));
     }
 
-    public URL getUserHistoryURL(String startDate, String startTime) throws  MalformedURLException{
+    URL getUserHistoryURL(String startDate, String startTime) throws  MalformedURLException{
         JSONObject object = getHostInfo();
         return new URL(getBaseURLString(object) + String.format(getURLInfoValue(object, "user_history"), getUUID(), startDate, startTime));
     }
 
-    public URL getExcludedPackageURL() throws  MalformedURLException{
+    URL getExcludedPackageURL() throws  MalformedURLException{
         JSONObject object = getHostInfo();
         return new URL(getBaseURLString(object) + getURLInfoValue(object, "excluded_package"));
     }
 
-    public String getPresurveyURLString() throws  MalformedURLException{
+    String getPreSurveyURLString() throws  MalformedURLException{
         JSONObject object = getHostInfo();
         return getURLInfoValue(object, "host") + getURLInfoValue(object, "pre_survey") + "?user_id=" + getUUID();
     }
 
-    public String getPostsurveyURLString() throws  MalformedURLException{
+    private String getPostsurveyURLString() throws  MalformedURLException{
         JSONObject object = getHostInfo();
         return getURLInfoValue(object, "host") + getURLInfoValue(object, "post_survey") + "?user_id=" + getUUID();
     }
 
-    public String getPrivacyURLString() throws MalformedURLException {
+    private String getPrivacyURLString() throws MalformedURLException {
         JSONObject object = getHostInfo();
         return getURLInfoValue(object, "host") + getURLInfoValue(object, "privacy");
     }
 
-    public URL getUserURL() throws MalformedURLException {
+    URL getUserURL() throws MalformedURLException {
         JSONObject object = getHostInfo();
         return new URL(getBaseURLString(object) + getURLInfoValue(object, "user"));
     }
 
-    public URL getExpInfoURL() throws MalformedURLException {
+    URL getGoalURL() throws MalformedURLException {
+        JSONObject object = getHostInfo();
+        return new URL(getBaseURLString(object) + getURLInfoValue(object, "goal"));
+    }
+
+    URL getExpInfoURL() throws MalformedURLException {
         JSONObject object = getHostInfo();
         return new URL(getBaseURLString(object) + getURLInfoValue(object, "exp_info"));
     }
 
-    public URL getHostInfoURL() throws MalformedURLException {
+    URL getHostInfoURL() throws MalformedURLException {
         return new URL(HOST_INFO_URL);
     }
 
-    public String getUsagePatternURLString() throws MalformedURLException {
+    String getUsagePatternURLString() throws MalformedURLException {
         JSONObject object = getHostInfo();
         Log.d("trans", "**************************"+object.toString());
         return getURLInfoValue(object, "host") +"graph/?user_id=" + getUUID();
     }
 
-    public boolean isHomeApp(AppInfo info) {
+    boolean isHomeApp(AppInfo info) {
         Intent intent = new Intent(Intent.ACTION_MAIN);
         intent.addCategory(Intent.CATEGORY_HOME);
         ResolveInfo res = mContext.getPackageManager().resolveActivity(intent, 0);
-        if (res.activityInfo == null)
-            return false;
-
-        return info.getPackageName().equals(res.activityInfo.packageName);
+        return res.activityInfo != null && info.getPackageName().equals(res.activityInfo.packageName);
 
     }
 
-    public boolean isExcludedPackage(CharSequence packageName) {
+    boolean isExcludedPackage(CharSequence packageName) {
         if (packageName == null || packageName.toString().isEmpty()) {
             return true;
         }
@@ -359,7 +372,7 @@ public class Config {
         return false;
     }
 
-    public boolean isOnline() {
+    boolean isOnline() {
         ConnectivityManager cm = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo netInfo = cm.getActiveNetworkInfo();
         return netInfo != null && netInfo.isConnectedOrConnecting();
@@ -375,7 +388,7 @@ public class Config {
         Toast.makeText(mContext, R.string.bad_url_warning, Toast.LENGTH_SHORT).show();
     }
 
-    public void startPresurvey() {
+    void startPresurvey() {
         try {
            startWebView(getPostsurveyURLString());
         }catch (MalformedURLException e) {
@@ -383,7 +396,7 @@ public class Config {
         }
     }
 
-    public void startPostsurvey() {
+    void startPostsurvey() {
         try {
             startWebView( getPostsurveyURLString());
         }catch (MalformedURLException e) {
@@ -391,7 +404,7 @@ public class Config {
         }
     }
 
-    public void startInformation() {
+    void startInformation() {
         try {
             startWebView( getPrivacyURLString());
         }catch (MalformedURLException e) {
@@ -399,9 +412,9 @@ public class Config {
         }
     }
 
-    public boolean isAccessibilityEnabled() {
-        List<AccessibilityServiceInfo> infos = mAccessibilityManager.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_GENERIC);
-        for (AccessibilityServiceInfo info : infos) {
+    boolean isAccessibilityEnabled() {
+        List<AccessibilityServiceInfo> infoList = mAccessibilityManager.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_GENERIC);
+        for (AccessibilityServiceInfo info : infoList) {
             if (info.eventTypes == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
                 return true;
             }
@@ -409,11 +422,20 @@ public class Config {
         return false;
     }
 
-    public boolean isSetTodayGoal(DataBaseHelper db) {
-        Cursor cursor = db.getGoalByDate(Config.DATE_FORMAT.format(Calendar.getInstance().getTime()));
-        int count = cursor.getCount();
-        cursor.close();
-        return count != 0;
+    boolean isNeedSetTodayGoal(GoalSettingAlarm alarm, DataBaseHelper db) {
+        Calendar now = Calendar.getInstance();
+        Pair<Integer, Integer> time = alarm.getTime(mContext);
+        Calendar alarmTime = Calendar.getInstance();
+        alarmTime.set(Calendar.HOUR_OF_DAY, time.first);
+        alarmTime.set(Calendar.MINUTE, time.second);
+
+        if (now.after(alarmTime)) {
+            Cursor cursor = db.getGoalByDate(Config.DATE_FORMAT.format(now.getTime()));
+            int count = cursor.getCount();
+            cursor.close();
+            return count == 0;
+        }
+        return false;
     }
 
 }

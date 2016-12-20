@@ -19,6 +19,7 @@ public class GoalSettingAlarm {
     private static GoalSettingAlarm mInstance = null;
     private final static String NOTI_HOUR = "NOTI_HOUR";
     private final static String NOTI_MIN = "NOTI_MIN";
+    private final static int REQUEST_CODE = 1234;
 
     private GoalSettingAlarm() {
 
@@ -45,35 +46,47 @@ public class GoalSettingAlarm {
         return Pair.create(pref.getInt(NOTI_HOUR, -1), pref.getInt(NOTI_MIN, -1));
     }
 
-    private boolean isValidTime(Pair<Integer, Integer> time) {
+    public boolean isValidTime(Pair<Integer, Integer> time) {
         if (time.first < 0 || time.second < 0) {
             return false;
         }
         return true;
     }
 
-    public boolean isValid(Context context) {
-        return isValidTime(getTime(context));
+    public boolean isNeedSettingTime(Context context) {
+        return !isValidTime(getTime(context));
     }
 
-    public boolean start(Context context) {
-        Pair<Integer, Integer> time = getTime(context);
-        if (!isValidTime(time)) {
-            return false;
-        }
+    private PendingIntent getPendingIntent(Context context) {
+        return PendingIntent.getService(context, REQUEST_CODE, new Intent(context, MonitoringService.class).setAction(MonitoringService.ALARM), PendingIntent.FLAG_UPDATE_CURRENT);
+    }
 
-        start(context, time.first, time.second);
-        return true;
+    public void start(Context context) {
+        start(context, getTime(context));
+    }
+
+    private void start(Context context, Pair<Integer, Integer> time) {
+        if (isValidTime(time)) {
+            start(context, time.first, time.second);
+        }
     }
 
     private void start(Context context, int hourOfDay, int minute) {
-        AlarmManager manager = (AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
         Log.d("trans", "-------------- alarm start ------------"+hourOfDay+" " +minute+"---------");
+        AlarmManager manager = (AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
         manager.setInexactRepeating(AlarmManager.RTC_WAKEUP
                 , getTriggerTime(System.currentTimeMillis(), hourOfDay, minute)
                 , AlarmManager.INTERVAL_DAY
-                , PendingIntent.getService(context, 0, new Intent(context, MonitoringService.class).setAction(MonitoringService.ALARM), PendingIntent.FLAG_UPDATE_CURRENT));
+                , getPendingIntent(context));
 
+    }
+
+    public void stop(Context context) {
+        Log.d("trans", "-------------- alarm stop ------------");
+        AlarmManager manager = (AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
+        PendingIntent pi = getPendingIntent(context);
+        manager.cancel(pi);
+        pi.cancel();
     }
 
     private long getTriggerTime(long currentMillis, int hourOfDay, int minute) {
