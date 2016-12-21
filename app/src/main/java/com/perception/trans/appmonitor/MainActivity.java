@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity {
         mDB.open();
         mConfig = new Config(this);
         mConfig.saveExpStartDateIfNeed();
-        //mConfig.testSetExpStartDate("2016-06-21");
+        mConfig.testSetExpStartDate("2016-12-13");
     }
 
     @Override
@@ -48,6 +48,20 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void checkNotiAlarm(Config config, DataBaseHelper db) {
+        GoalSettingAlarm alarm = GoalSettingAlarm.getInstance();
+        Log.d("trans", "-------------checkNotiAlarm");
+        if (!config.isValidNotiAlarmPeriod()) {
+            return;
+        }
+
+        if (alarm.isNeedSettingTime(this)) {
+            startGoalSettingAlarmActivity();
+        } else if (config.isNeedSetTodayGoal(alarm, db)) {
+            startTodayGoal();
+        }
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -56,26 +70,18 @@ public class MainActivity extends AppCompatActivity {
             startActivity(new Intent(this, UserInfoActivity.class).setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY));
         } else if (!mConfig.isCompletePreSurvey()){
             startPreSurvey();
-        } else if (!GoalSettingAlarm.getInstance().start(this)) {
-            startGoalSettingAlarmActivity();
-        } else if (!isSetTodayGoal()) {
-            startTodayGoal();
-        } else if (!mConfig.isAccessibilityEnabled()) {
+        }  else if (!mConfig.isAccessibilityEnabled()) {
             startAccessibilityConfirmDialog();
+        } else {
+            checkNotiAlarm(mConfig, mDB);
         }
     }
-
-    private boolean isSetTodayGoal() {
-        Cursor cursor = mDB.getGoalByDate(Config.DATE_FORMAT.format(Calendar.getInstance().getTime()));
-        return cursor.getCount() != 0;
-    }
-
 
     private void startPreSurvey() {
         try {
             startActivity(new Intent(this, WebViewActivity.class)
                     .setAction(WebViewActivity.LOAD_URL).setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
-                    .putExtra("DATA", mConfig.getPresurveyURLString()));
+                    .putExtra("DATA", mConfig.getPreSurveyURLString()));
         }catch (MalformedURLException e) {
             e.printStackTrace();
         }
@@ -219,9 +225,6 @@ public class MainActivity extends AppCompatActivity {
         startActivityForResult(intent, 0);
     }
 
-    private void startGoalSettingAlarmActivity() {
-        startActivity(new Intent(this, GoalSettingAlarmActivity.class));
-    }
 
     private void startAccessibilityConfirmDialog() {
         AlertDialog.Builder alertBuilder = new AlertDialog.Builder(MainActivity.this);
@@ -242,10 +245,26 @@ public class MainActivity extends AppCompatActivity {
         alert.show();
     }
 
-    private void startTodayGoal() {
-        startActivity(new Intent(this, GoalActivity.class));
+    private void startGoalSettingAlarmActivity() {
+        if (mConfig.isValidNotiAlarmPeriod()) {
+            startActivity(new Intent(this, GoalSettingAlarmActivity.class).setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY));
+        } else {
+            displayNOTAlarmPeriod();
+        }
     }
 
+
+    private void startTodayGoal() {
+        if (mConfig.isValidNotiAlarmPeriod()) {
+            startActivity(new Intent(this, GoalActivity.class).setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY));
+        } else {
+            displayNOTAlarmPeriod();
+        }
+    }
+
+    private void displayNOTAlarmPeriod() {
+        Toast.makeText(this, R.string.not_valid_alram_period, Toast.LENGTH_SHORT).show();
+    }
 }
 
 

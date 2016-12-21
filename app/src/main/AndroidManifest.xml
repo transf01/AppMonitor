@@ -66,10 +66,6 @@
 
         <activity android:name=".GoalSettingAlarmActivity" />
         <activity android:name=".GoalActivity"></activity>
-        <receiver
-            android:name=".AlarmReceiver"
-            android:enabled="true"
-            android:exported="true"></receiver>
     </application>
 
 </manifest>

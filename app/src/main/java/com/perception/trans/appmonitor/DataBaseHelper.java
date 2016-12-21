@@ -35,7 +35,7 @@ public class DataBaseHelper{
     }
 
     public void open() {
-        mOpenHelper = new DataBaseOpenHelper(mContext, "appstat.db", null, 3);
+        mOpenHelper = new DataBaseOpenHelper(mContext, "appstat.db", null, 4);
         mdb = mOpenHelper.getWritableDatabase();
     }
 
@@ -43,7 +43,11 @@ public class DataBaseHelper{
         mdb.close();
     }
 
-    public long addData(String appName, String packageName, AppRuntimeInfo runtimeInfo) {
+    public void addData(String appName, String packageName, AppRuntimeInfo runtimeInfo) {
+        if (runtimeInfo.getRunTime() == 0) {
+            Log.d("trans", "don't save history because use time is under 1sec");
+            return;
+        }
         ContentValues values = new ContentValues();
         values.put(APP_NAME, appName);
         values.put(PACKAGE_NAME, packageName);
@@ -51,7 +55,7 @@ public class DataBaseHelper{
         values.put(START_TIME, runtimeInfo.getStartTimeString());
         values.put(USE_TIME, runtimeInfo.getRunTime());
         values.put(IS_SEND, 0);
-        return mdb.insert(HISTORY_TABLE, null, values);
+        mdb.insert(HISTORY_TABLE, null, values);
     }
 
     public Cursor getAllColumns(){
@@ -104,6 +108,7 @@ public class DataBaseHelper{
         values.put(CONFIDENCE, confidence);
         values.put(IMPORTANCE, importance);
         values.put(GOAL, goal);
+        values.put(IS_SEND, 0);
         return mdb.insert(GOAL_TABLE, null, values);
     }
 
@@ -112,6 +117,11 @@ public class DataBaseHelper{
         return mdb.rawQuery(query, new String[]{});
     }
 
+    public void updateGoalSendFlag(String rowid, int flag) {
+        ContentValues value = new ContentValues();
+        value.put(IS_SEND, flag);
+        mdb.update(GOAL_TABLE, value, "rowid=?", new String[]{rowid});
+    }
 
     public void clear() {
         mdb.delete(HISTORY_TABLE, null, null);
@@ -141,8 +151,9 @@ public class DataBaseHelper{
                     "%2$s text not null, " +
                     "%3$s integer, " +
                     "%4$s integer, " +
-                    "%5$s integer);"
-                    ,GOAL_TABLE, DATE, CONFIDENCE, IMPORTANCE, GOAL);
+                    "%5$s integer, " +
+                    "%6$s integer);"
+                    ,GOAL_TABLE, DATE, CONFIDENCE, IMPORTANCE, GOAL, IS_SEND);
             db.execSQL(sql);
         }
 

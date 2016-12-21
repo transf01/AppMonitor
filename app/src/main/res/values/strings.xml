@@ -34,7 +34,8 @@
     <string name="did_not_set">목표를 설정하지 않았습니다.</string>
     <string name="set_goal">을 목표로 하였고,&#160;</string>
     <string name="real_usage">을 실제로 사용하였습니다.</string>
-    <string name="alarm_noti_title">사용량 설정</string>
     <string name="alarm_noti_text">오늘의 목표를 설정해주세요</string>
+    <string name="request_alram_setting">알람 시간을 설정해주세요</string>
+    <string name="not_valid_alram_period">실험 시작한 후 일정 날짜가 지나야 설정할 수 있습니다.</string>
 
 </resources>
