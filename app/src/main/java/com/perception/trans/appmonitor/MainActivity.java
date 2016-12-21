@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity {
         mDB.open();
         mConfig = new Config(this);
         mConfig.saveExpStartDateIfNeed();
-        mConfig.testSetExpStartDate("2016-12-13");
+        //mConfig.testSetExpStartDate("2016-12-13");
     }
 
     @Override
